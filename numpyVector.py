@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+import inspect
 from scipy import linalg as la
 from abstractVector import AbstractVector, LINDEP_DEFAULT_VALUE
 from scipy.sparse.linalg import LinearOperator
@@ -7,6 +8,19 @@ import warnings
 from scipy.sparse.linalg import spsolve
 import math
 from scipy.sparse import csc_matrix
+
+
+def _callIterativeSolver(solver, linOp, rhs, x0, tol, atol, maxiter):
+    # "tol" got removed in newer scipy release
+    kwargs = {"x0": x0, "maxiter": maxiter}
+    parameters = inspect.signature(solver).parameters
+    if "rtol" in parameters:
+        kwargs["rtol"] = tol
+    else:
+        kwargs["tol"] = tol
+    if "atol" in parameters:
+        kwargs["atol"] = atol
+    return solver(linOp, rhs, **kwargs)
 
 
 ####################################################################
@@ -158,9 +172,9 @@ class NumpyVector(AbstractVector):
         atol = options["linear_atol"]
         maxiter = options["linearIter"]
         if options["linearSolver"] == "gcrotmk":
-            wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
+            wk,conv = _callIterativeSolver(scipy.sparse.linalg.gcrotmk, linOp, b.array, x0, tol, atol, maxiter)
         elif options["linearSolver"] == "minres":
-            wk,conv = scipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,maxiter=maxiter)
+            wk,conv = _callIterativeSolver(scipy.sparse.linalg.minres, linOp, b.array, x0, tol, None, maxiter)
         elif options["linearSolver"] == "pardiso": # only for comparing with fortran
             if not reverseGF:
                 A1 = csc_matrix(sigma*np.eye(n)-H)
