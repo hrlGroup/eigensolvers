@@ -232,7 +232,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                                   pick=None, status=None,
                                   writeOut=True, eShift=0.0, convertUnit="au",
                                   outFileName=None, summaryFileName=None,
-                                  saveTNSsEachIteration=True, saveDir="saveTNSs"):
+                                  saveAllVectors=True, saveDir="lanczosVectors"):
     """ Calculate eigenvalues and eigenvectors using the inexact Lanczos method
 
 
@@ -263,7 +263,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                     (more details see _getStatus doc)
             outFileName (optional): output file name
             summaryFileName (optional): summary file name
-            saveTNSsEachIteration (optional): save nBlock Krylov vectors 
+            saveAllVectors (optional): save Lanczos vectors to `saveDir` during each outer iteration
             at each cumulative iteration
             saveDir (optional): directory for saving Krylov vectors
 
@@ -331,6 +331,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             # Also extends overlap and Hamiltonian matrices
             #
             lindepProblem = False
+            firstNewVector = len(Ylist)
             for iBlock in range(nBlock):
                 status["iBlock"] = iBlock
                 newOrthVec = typeClass.orthogonalize_against_set(newVectors[iBlock],Ylist)
@@ -381,15 +382,14 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             status = checkConvergence(ev,eConv,status,printObj)
             continueIteration = analyzeStatus(status,maxit,L)
             
-            # save all Krylov vectors
-            if saveTNSsEachIteration:
+            # Save the Lanczos vectors generated in this step.
+            if saveAllVectors:
                 if not os.path.exists(saveDir):
                     os.makedirs(saveDir)
-                for ivector in range(len(Ylist)):
+                for ivector in range(firstNewVector, len(Ylist)):
                     additionalInformation = {"status":status,
                             "eigencoefficients":uSH,"eigenvalues":ev} 
-                    nCum = status["cumIter"]
-                    filename = f"{saveDir}/vector_{nCum}_{ivector}"
+                    filename = f"{saveDir}/vector_{outerIter:03d}_{ivector:03d}"
                     Ylist[ivector].save(filename,
                             additionalInformation=additionalInformation)
 
