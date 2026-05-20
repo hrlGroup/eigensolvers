@@ -336,6 +336,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                 newOrthVec = typeClass.orthogonalize_against_set(newVectors[iBlock],Ylist)
                 if newOrthVec is None:
                     lindepProblem = True
+                    status["lindep"] = True
                     if printObj.writeOut:
                         warnings.warn(f"Linear dependency problem in iteration {outerIter} "
                                   f"and microiteration {innerIter} for block state {iBlock},"

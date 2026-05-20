@@ -1,61 +1,50 @@
 import unittest
-import sys
 from inexact_Lanczos  import *
 import numpy as np
-from scipy import linalg as la
 from numpyVector import NumpyVector
     
 class Test_lanczos(unittest.TestCase):
     def setUp(self):
-        # This is a specific case where linearly dependent vectors
-        # generation happens
-        n = 1200
-        ev = np.linspace(1,400,n)
-        np.random.seed(10)
-        Q = la.qr(np.random.rand(n,n))[0]
-        A = Q.T @ np.diag(ev) @ Q
-
-        options = {"linearSolver":"gcrotmk","linearIter":500,"linear_tol":1e-1}
+        # The initial vector only has support on two eigenvectors, so the
+        # Krylov space must run out of new directions at the second step.
+        A = np.diag([1.0, 3.0, 10.0])
+        options = {"linearSolver":"gcrotmk","linearIter":1000,
+                   "linear_tol":1e-12, "linear_atol":1e-12}
         optionDict = {"linearSystemArgs":options}
-        self.printChoices = {"writeOut": False,"writePlot": False}
-        Y0 = NumpyVector(np.random.random((n)),optionDict)
+        Y0 = NumpyVector(np.array([1.0, 1.0, 0.0]), optionDict)
         
         self.guess = Y0
         self.mat = A
-        self.ev = ev 
-        self.sigma = 390
-        self.eShift = 0.0
-        self.L = 100     # make sufficiently large to get LINDEP
-        self.maxit = 1000 # same as above
-        self.eConv = 1e-12
-
-        evEigh, uvEigh = np.linalg.eigh(A)
-        self.evEigh = evEigh
-        self.uvEigh = uvEigh
+        self.sigma = 2.0
+        self.L = 5
+        self.maxit = 5
+        self.eConv = 1e-14
 
     def test_status(self):
-        """ This specific case face lindep in the first Lanczos iteration,
-        check if status["lindep"] is indeed True or not"""
+        """Check that linear dependency is reported in the returned status."""
         evLanczos, uvLanczos, status = inexactLanczosDiagonalization(self.mat,self.guess,self.sigma,
-                self.L,self.maxit,self.eConv,pick=None,status = self.printChoices)
-        # TODO need to be made better
-        self.assertTrue(status["lindep"]== True, msg="mail fail on some machines; "
-                                                     "may be ok as this only tests an assertion")
-        ''' Testing after getting linear dependency the list must be truncated
-            or the length of vectors list should be iKrylov'''
+                self.L,self.maxit,self.eConv,pick=None,writeOut=False,
+                saveTNSsEachIteration=False)
+        self.assertTrue(status["lindep"])
+        # After a dependent vector is found, the returned vector list should
+        # only contain the independent Krylov vectors.
         iKrylov = status["innerIter"]
         nvectors = len(uvLanczos)
         self.assertTrue(nvectors == iKrylov)
 
     def test_futileRestarts(self):
-        """ For this specific case, number of futile restarts is larger than 3"""
-        eConv = 1e-18 # stoping from early convergence
-        status = inexactLanczosDiagonalization(self.mat,self.guess,self.sigma,
-                self.L,self.maxit,eConv,pick=None,status = self.printChoices)[2]
-        nfutileRestarts = status["futileRestarts"]
-        # one or more futile restarts 
-        if status["outerIter"] < self.maxit-1:
-            self.assertTrue(nfutileRestarts >= 1)
+        """Check that ineffective restarts are counted."""
+        status = {"lindep": True, "ref": [np.array([1.0])],
+                  "futileRestarts": 0}
+        decision = terminateRestart(np.array([2.0]), self.eConv, status)
+        self.assertFalse(decision)
+        self.assertEqual(status["futileRestarts"], 1)
+
+        status["futileRestarts"] = 3
+        with self.assertWarns(UserWarning):
+            decision = terminateRestart(np.array([2.0]), self.eConv, status)
+        self.assertTrue(decision)
+        self.assertEqual(status["futileRestarts"], 4)
 
 if __name__ == "__main__":
     unittest.main()
