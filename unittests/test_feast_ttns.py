@@ -1,25 +1,25 @@
 import unittest
 import sys
 import copy
+from pathlib import Path
 import numpy as np
 from scipy import linalg as la
 from ttnsVector import TTNSVector
 import basis
 import mctdh_stuff
-import basis
 import operatornD
 from ttns2.driver import eigenStateComputations
 from ttns2.diagonalization import IterativeDiagonalizationOptions
+from ttns2.diagonalization import IterativeLinearSystemOptions
 from ttns2.parseInput import parseTree, getMPS
 from ttns2.contraction import TruncationEps
-from feast import *
-from ttns2.diagonalization import IterativeLinearSystemOptions
 from ttns2.contraction import TruncationFixed
+from ttns2.driver import orthogonalize
+from feast import *
 import util
 from util_funcs import find_nearest
 from magic import ipsh
 from util_funcs import select_within_range
-from ttns2.driver import orthogonalize 
 
 
 class Test_feast_ttns(unittest.TestCase):
@@ -29,7 +29,7 @@ class Test_feast_ttns(unittest.TestCase):
         convTol = 1e-5
         N_STATES = 6 # also sets eigenvalue index below. sigma is 
 
-        fOp = 'pyr4+.op'
+        fOp = Path(__file__).with_name("pyr4+.op")
         Hop = mctdh_stuff.translateOperatorFile(fOp, verbose=False)
 
         FAC = 2
@@ -169,7 +169,7 @@ class Test_feast_ttns(unittest.TestCase):
                 ovlp = exactVector.vdot(feastVector)
                 np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-4, err_msg = f"{ovlp=} but it should be +-1")
             
-                feastVector = feastVector * ovlp.conj()
+                feastVector = feastVector * np.conjugate(ovlp)
                 exactVector = np.ravel(exactVector.ttns.fullTensor(canonicalOrder=True)[0])
                 feastVector = np.ravel(feastVector.ttns.fullTensor(canonicalOrder=True)[0])
                 np.testing.assert_allclose(exactVector,feastVector,rtol=1e-3,atol=1e-3)
