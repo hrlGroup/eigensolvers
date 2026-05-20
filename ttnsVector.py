@@ -207,7 +207,7 @@ class TTNSVector(AbstractVector):
                 ket = vectors[j].ttns
                 val = getRenormalizedOp(bra, operator, ket).bracket()
                 M[i, j] = val
-                M[j, i] = val.conj()
+                M[j, i] = np.conjugate(val)
         return M
 
     @staticmethod
