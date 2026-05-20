@@ -8,6 +8,7 @@ import warnings
 from scipy.sparse.linalg import spsolve
 import math
 from scipy.sparse import csc_matrix
+from pathlib import Path
 
 
 def _callIterativeSolver(solver, linOp, rhs, x0, tol, atol, maxiter):
@@ -108,6 +109,15 @@ class NumpyVector(AbstractVector):
     
     def copy(self):
         return NumpyVector(self.array.copy(), self.options)
+
+    def save(self, filename, additionalInformation:dict=None):
+        filename = Path(filename)
+        if filename.suffix != ".npz":
+            filename = filename.with_suffix(".npz")
+        saveDict = {"vector": self.array}
+        if additionalInformation is not None:
+            saveDict.update(additionalInformation)
+        np.savez(str(filename), **saveDict)
 
     def applyOp(self,other):
         ''' Apply rmatmul as other@self.array '''

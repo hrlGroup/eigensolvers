@@ -7,6 +7,7 @@ from numbers import Number
 
 import warnings
 import copy
+from pathlib import Path
 from ttns2.state import TTNS
 from ttns2.renormalization import AbstractRenormalization, SumOfOperators
 from ttns2.sweepAlgorithms import LinearSystem, StateFitting
@@ -115,6 +116,12 @@ class TTNSVector(AbstractVector):
         # ATTENTION: `options` should not be copied.
         #  Copying will lead to problems e.g. if the options contain `auxList`
         return TTNSVector(self.ttns.copy(), self.options)
+
+    def save(self, filename, additionalInformation:dict=None):
+        filename = Path(filename)
+        if filename.suffix == "":
+            filename = filename.with_suffix(".h5")
+        self.ttns.saveToHDF5(str(filename), additionalInformation=additionalInformation)
 
     def applyOp(self, op: AbstractRenormalization) -> TTNSVector:
         warnings.warn("TTNS call to `applyOp`. This should be avoided!")

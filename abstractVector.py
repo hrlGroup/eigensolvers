@@ -84,6 +84,11 @@ class AbstractVector(ABC):
     @abstractmethod
     def copy(self):
         raise NotImplementedError
+
+    @abstractmethod
+    def save(self, filename, additionalInformation:dict=None):
+        """Save vector and optional calculation data."""
+        raise NotImplementedError
     
     @abstractmethod
     def applyOp(self,other):
