@@ -79,5 +79,5 @@ After a successful test or example-driver run, the following output files are wr
 wave functions”, The Journal of Chemical Physics 112.20 (2000), pp. 8765–8771.
 2. Eric Polizzi., “Density-matrix-based algorithm for solving eigenvalue problems”, Physical Review B
 79.11 (2009), p. 115112.
-3. Madhumita Rano and Henrik R. Larsson, Computing excited eigenstates using inexact Lanczos methods and tree tensor network states, 
-arXiv preprint arXiv:2506.22574, 2025. 
+3. Madhumita Rano and Henrik R. Larsson, Computing excited eigenstates using inexact Lanczos methods and tree tensor network states, J. Chem. Phys., 163 (2025), 164110, https://doi.org/10.1063/5.0301263
+    arXiv preprint arXiv:2506.22574
