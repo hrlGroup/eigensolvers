@@ -84,7 +84,7 @@ class Test_feast_fortran(unittest.TestCase):
         np.testing.assert_allclose(fzne,zne[self.order],rtol=1e-5,atol=0)
 
     def test_Qe(self):
-        ''' Checks linear solutions, Qe '''
+        '''Check linear solutions, Qe.'''
         typeClass = self.guess[0].__class__
         r = abs(self.rmax-self.rmin)*0.5
         gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)

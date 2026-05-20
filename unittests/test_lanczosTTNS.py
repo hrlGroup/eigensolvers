@@ -98,15 +98,15 @@ class Test_lanczos(unittest.TestCase):
         self.assertTrue(len(uvLanczos) > 1)
         Sfull = typeClass.overlapMatrix(uvLanczos)
         with self.subTest("returnType"):
-            ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
+            '''Check that the returned eigenvalues and eigenvectors have the correct types.'''
             self.assertIsInstance(evLanczos, np.ndarray)
             self.assertIsInstance(uvLanczos, list)
             self.assertIsInstance(uvLanczos[0], TTNSVector)
         with self.subTest("orthogonal"):
-            ''' Returned basis in old form is orthogonal'''
+            '''Check that the returned basis is orthogonal.'''
             np.testing.assert_allclose(Sfull,np.eye(Sfull.shape[0]),atol=1e-5)
         with self.subTest("extension"):
-            ''' Checks if extension of matrix works or not'''
+            '''Check that matrix extension works.'''
             S1 = typeClass.overlapMatrix(uvLanczos[:-1])
             S = typeClass.extendOverlapMatrix(uvLanczos,S1)
             qtAqfull = typeClass.matrixRepresentation(self.mat,uvLanczos)
@@ -126,12 +126,12 @@ class Test_lanczos(unittest.TestCase):
             target_value = find_nearest(evLanczos,sigma)[1]
             closest_value = find_nearest(self.evEigh,sigma)[1]
             with self.subTest("eigenvalue"):
-                ''' Checks if relative accuracies of calculated eigenvalues lower or equal to 1e-5'''
+                '''Check that relative eigenvalue errors are at most 1e-5.'''
                 relError = abs(target_value-closest_value)/abs(closest_value)
-                self.assertTrue((relError <= 1e-5),'Relative accuarcy w.r.t. exact levels higher than 1e-5')
+                self.assertTrue((relError <= 1e-5),'Relative accuracy with respect to exact levels is higher than 1e-5')
             with self.subTest("eigenvector"):
-                ''' Checks if the calculated eigenvector is accurate up to 5e-4
-                Provided above test ensures relative accuracies of eigenvalues <= 1e-2'''
+                '''Check that the calculated eigenvector is accurate up to 5e-4.
+                The previous test ensures relative eigenvalue errors <= 1e-2.'''
                 idxE = find_nearest(self.evEigh,sigma)[0]
                 idxT = find_nearest(evLanczos,sigma)[0]
                 exactUV = self.uvEigh[:,idxE]

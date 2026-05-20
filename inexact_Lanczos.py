@@ -18,25 +18,21 @@ import copy
 import os
 
 # -----------------------------------------------------
-# Dividing in to functions for better readability 
-# and convenient testing
 def _getStatus(status, guessVector, nBlock):
-    """ 
-    Initialize and update status dictionary
+    """Initialize and update the status dictionary.
     
-    In: status -> status input dictionary
+    In: status -> input status dictionary
         guessVector -> guess vector
         nBlock -> Lanczos blocks
-    Out: statusUp  -> initialized and updated
+    Out: statusUp -> initialized and updated status dictionary
 
-    Status contains following information
+    Status contains the following information:
     (i)     Reference for residual calculations,
-            and resdidual
+            and residual
     (ii)    Block info (number of blocks)
     (iii)   Vector flagAddition property
     (iv)    Stage of iteration
-    (v)     zeroVector, convergence, lindep and futile restarts
-            informations
+    (v)     zeroVector, convergence, lindep, and futile restart information
     (vi)    Run time
     (vii)   Number of phases
 
@@ -46,18 +42,13 @@ def _getStatus(status, guessVector, nBlock):
     "startTime","runTime","phase"]
 
 
-    "ref" is a list of np.arrays -> always contains maximum two items.
-    Each item of the list contains nearest n block eigenvalues
-    and serves as reference. Purpose of having two 
-    items in the reference list: (i) Latest item (or the second element) 
-    is used for evaluating convergence residual (see in 
-    'checkConvergence' module), and (ii) After evaluating residual
-    for convergence check, the "ref" list is updated with current 
-    nBlock eigenvalues. At end of Krylov iteration, decision is to 
-    be made for terminateRestart for cases with lindep.
-    Second element is already the updated nBlock eigenvalues from
-    current iteration. Here, the first element serves the purpose
-    of reference to check residual of restart.
+    "ref" is a list of vectors and contains at most two items.
+    Each item contains the nearest n block eigenvalues and serves as a
+    reference. The latest item is used to evaluate the convergence residual
+    in checkConvergence. After the residual is evaluated, "ref" is updated
+    with the current nBlock eigenvalues. At the end of a Krylov iteration,
+    terminateRestart uses the older reference to decide whether a restart
+    after linear dependency was useful.
 
     zeroVector is True when linear solution has norm less than 0.001*eConv
     """
@@ -82,17 +73,17 @@ def _getStatus(status, guessVector, nBlock):
     return statusUp
 
 def generateSubspace(Hop, vec:List[AbstractVector],sigma,eConv):
-    """ Builds Krylov space by solving linear system
+    """Build a Krylov vector by solving a linear system
     (Hop-sigma) x = vec
-    and subsequent normalization if x is nonzero.
+    and normalizing x if it is nonzero.
     Nonzero is defined by norm > 0.001*eConv
 
-    In: Hop -> Operator (either as matrix or linearOperator)
-        vec -> List of Krylov vectors
-        sigma -> Eigenvalue target
-        eConv -> Eigenvalue convergence tolerance
+    In: Hop -> operator (either as matrix or linearOperator)
+        vec -> Krylov vector
+        sigma -> eigenvalue target
+        eConv -> eigenvalue convergence tolerance
 
-    Out: New vector x, nonzero
+    Out: new vector x, nonzero flag
     """
 
     typeClass = type(vec)
@@ -105,19 +96,19 @@ def generateSubspace(Hop, vec:List[AbstractVector],sigma,eConv):
     return out, nonzero
 
 def _convergence(value, ref):
-    ''' Computes convergence quantity (absolute error or 
-    relative error, current one is relative error )'''
+    '''Compute the convergence quantity.
+    Defined as relative error.'''
     
     check_ev = abs(value - ref)/max(abs(value), 1e-14)
     return check_ev
 
 
 def checkConvergence(ev,eConv,status,printObj=None):
-    ''' Checks eigenvalue convergence
+    '''Check eigenvalue convergence.
     
     In: ev -> eigenvalues, sorted based on `pick`
-        status -> params dictionary
-        printObj (opional): print object 
+        status -> parameter dictionary
+        printObj (optional): print object
     
     Out: status (dict: updated isConverged, ref)
          '''
@@ -126,7 +117,7 @@ def checkConvergence(ev,eConv,status,printObj=None):
     nBlock = status["nBlock"]
     nBlockEigenvalues = np.sort(ev[0:nBlock])   # nBlock states, sort them to avoid root flipping
 
-    # Residual calculation and check for all except cumIter = 1
+    # Calculate and check the residual for all iterations except cumIter = 1.
     if status["cumIter"] > 1:
         reference = status["ref"][-1] 
         residual = eigenvalueResidual(nBlockEigenvalues,reference)
@@ -143,12 +134,12 @@ def checkConvergence(ev,eConv,status,printObj=None):
     return status
  
 def checkFitting(evNew, ev, checkFitTol, status):
-    ''' Checks the eigenvalue after fitting
+    '''Check the eigenvalue after fitting
     (at the end of Lanczos iteration)
-    In : evNew -> energy after fitting sum of states
+    In : evNew -> energy after fitting the sum of states
          ev -> energy of state before fitting
-         checkFit -> checking tolerance of fitted vectors eigenvalues
-         status -> Param dictionary
+         checkFitTol -> tolerance for checking fitted vector eigenvalues
+         status -> parameter dictionary
     
     Out: properFit -> (bool: True for accurate linear combination)
     '''
@@ -160,22 +151,21 @@ def checkFitting(evNew, ev, checkFitTol, status):
         if _convergence(evNew,ev) > checkFitTol:
            properFit = False
            iBlock = status["iBlock"]
-           print(f"Linearcombination inaccurate for {iBlock}: After fit:\
+           print(f"Linear combination inaccurate for {iBlock}: After fit:\
                    {evNew}. Before fit: {ev}")
     return properFit
 
 def terminateRestart(blockEnergies,eConv,status,num=3):
-    """ This module looks if Lanczos restarts are fruitful or not
+    """Check whether Lanczos restarts are useful.
     
-    futileRestarts -> Number of ineffective or futile restarts
+    futileRestarts -> number of ineffective or futile restarts
     If the eigenvalue residual change is greater than max(1e-9,eConv),
-    counted as an ineffective or futile restart and adds
-    1 to futileRestarts
+    count it as a futile restart and add 1 to futileRestarts.
 
     In: blockEnergies -> nBlock energies after fitting
         eConv -> eigenvalue convergence
-        status -> param dictionary
-        num (optional) -> Number of futile restarts
+        status -> parameter dictionary
+        num (optional) -> number of futile restarts
                           Default is 3
     Out: decision (Boolean) -> decision to terminate restart"""
     
@@ -188,19 +178,17 @@ def terminateRestart(blockEnergies,eConv,status,num=3):
             status["futileRestarts"] += 1
 
     if status["futileRestarts"] > num:
-        warnings.warn("Lindep and did not have fruitful restarts")
+        warnings.warn("Linear dependency occurred and restarts were not useful.")
         decision = True
 
     return decision
 
 
 def analyzeStatus(status,maxit,L):
-    ''' Wrapper of decision parameter for iteration, isConverged'
-        in a separate function and conclude to a single 
-        bool param continueIteration
-        to make main function clean
+    '''Combine iteration and convergence status into a single decision
+    to continue an iteration or not.
 
-    In: status -> param dictionary
+    In: status -> parameter dictionary
         maxit -> maximum Lanczos iterations
         L -> Krylov dimension
         
@@ -216,14 +204,14 @@ def analyzeStatus(status,maxit,L):
     
     if it == maxit -1 and i == L-1: 
         if not isConverged: 
-            print("Alert: Lanczos iterations is not converged!")
+            print("Alert: Lanczos iterations did not converge!")
             continueIteration = False
 
     return continueIteration
 # -----------------------------------------------------
 
 # -----------------------------------------------------
-#    Inexact Lanczos with AbstractClass interface
+#    Inexact Lanczos with AbstractVector interface
 #------------------------------------------------------
 
 def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVector]],
@@ -233,38 +221,36 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                                   writeOut=True, eShift=0.0, convertUnit="au",
                                   outFileName=None, summaryFileName=None,
                                   saveAllVectors=True, saveDir="lanczosVectors"):
-    """ Calculate eigenvalues and eigenvectors using the inexact Lanczos method
+    """Calculate eigenvalues and eigenvectors using the inexact Lanczos method.
 
 
-    ---Doing inexact Lanczos in canonical orthogonal basis.---
+    ---Run inexact Lanczos in a canonical orthogonal basis.---
     
     Input parameters
     ----------------
-             H => diagonalizable input matrix or linearoperator
+             H => diagonalizable input matrix or linear operator
              v0 => eigenvector guess
                     Can be a list of `AbstractVectors`.
                     Then, block Lanczos is performed (Krylov space on each of the guesses).
                     Note that the guess vectors should be orthogonal.
              sigma => eigenvalue estimate
              L => Krylov space dimension
-             maxit => Maximum Lanczos iterations
+             maxit => maximum number of Lanczos iterations
              eConv => relative eigenvalue convergence tolerance
-             checkFitTol (optional) => checking tolerance of fitted vectors
-                             eigenvalues
-             Hsolve (optional) => As H but only used for the generation of the Lanczos vectors
-                    `H` is then used for diagonalizing the Hamiltonian matrix
-             writeOut (optional) => writing file instruction
-             default : write both iteration_lanczos.out & summary_lanczos.out
-             eShift (optional) => shift value for eigenvalues, Hmat elements
-             convertUnit (optional) => convert unit for eigenvalues, Hmat elements
-             pick (optional) => pick function for eigenstate 
+             checkFitTol (optional) => tolerance for checking fitted vector eigenvalues
+             Hsolve (optional) => Like H, but only used to generate Lanczos vectors.
+                    `H` is then used to diagonalize the Hamiltonian matrix.
+             writeOut (optional) => whether to write output files
+             default: write both iterations_lanczos.out and summary_lanczos.out
+             eShift (optional) => shift value for eigenvalues and Hmat elements
+             convertUnit (optional) => unit conversion for eigenvalues and Hmat elements
+             pick (optional) => pick function for eigenstate
                             Default is get_pick_function_close_to_sigma
              status (optional) => Additional information dictionary
-                    (more details see _getStatus doc)
+                    See the _getStatus docstring for details.
             outFileName (optional): output file name
             summaryFileName (optional): summary file name
-            saveAllVectors (optional): save Lanczos vectors to `saveDir` during each outer iteration
-            at each cumulative iteration
+            saveAllVectors (optional): save newly generated Lanczos vectors to `saveDir`
             saveDir (optional): directory for saving Krylov vectors
 
 
@@ -284,13 +270,14 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
     typeClass = type(v0[0])
     nBlock = len(v0)
 
-    Ylist = v0.copy() # Krylov subspace lists.
+    Ylist = v0.copy() # Krylov subspace list.
     Smat = typeClass.overlapMatrix(Ylist)
     if not np.allclose(Smat, np.eye(nBlock), rtol=1e-3, atol=1e-3):
         if nBlock > 1:
             raise RuntimeError(f"Input vectors not orthogonalized: {Smat=}")
         else:
-            # gracefully do this. I do not want to do it for nBlock as GS orthogonalization modifies the block space
+            # Normalize a single input vector. Do not do this for nBlock > 1,
+            # because Gram-Schmidt orthogonalization modifies the block space.
             Ylist[0].normalize()
             Smat[0,0] = 1
     Hmat = typeClass.matrixRepresentation(H,Ylist)
@@ -309,7 +296,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
         status["outerIter"] = outerIter
         status["KSmaxD"] = [Ylist[0].maxD]
         status["fitmaxD"] = None
-        for innerIter in range(1,L): # starts with 1 because Y0 is used as first basis vector
+        for innerIter in range(1,L): # start with 1 because Y0 is used as the first basis vector
             status["innerIter"] = innerIter
             status["cumIter"] += 1
             #
@@ -323,7 +310,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                     warnings.warn(f"Alert: zero vector: ||inv(H-sigma)vec||={typeClass.norm(out):5.3e}")
                     break
                 newVectors.append(out)
-            if not nonzero: # break Krylov loop too
+            if not nonzero: # also break the Krylov loop
                 break
             #
             # Orthogonalize and append
@@ -342,8 +329,8 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                         warnings.warn(f"Linear dependency problem in iteration {outerIter} "
                                   f"and microiteration {innerIter} for block state {iBlock},"
                                   f" abort current Lanczos iteration and restart.")
-                    # As extension, in principle I can continue with the remaining block iterations.
-                    #   But I assume that this here rarely happens
+                    # In principle, the remaining block iterations could continue.
+                    # This case is expected to be rare.
                     break
                 Ylist.append(newOrthVec.compress())
                 status["KSmaxD"].append(Ylist[-1].maxD)
@@ -363,11 +350,10 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             # Diagonalize
             #
             # Transform to orthogonal basis to check once again linear dependencies
-            # I could also just solve the generalized eigenvalue problem directly
-            # But this way I could avoid the above GS orthogonalization or modify it
-            #   to ignore linear dependency problems
+            # This could be replaced by a direct generalized eigenvalue solve.
+            # The current route keeps the linear dependency handling explicit.
             status, uS = lowdinOrthoMatrix(Smat, status)
-            assert not status["lindep"] # should have been taken care of above
+            assert not status["lindep"] # should have been handled above
             ev, uv = diagonalizeHamiltonian(uS,Hmat,printObj)
             uSH = uS@uv
             del uv
@@ -401,7 +387,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
         if not continueIteration:
             # Finish up and then return
             Ylist = basisTransformation(Ylist,uSH)
-            # check orthogonality of S
+            # Check orthogonality of S.
             Smat = typeClass.overlapMatrix(Ylist)
             if not np.allclose(Smat, np.eye(len(Ylist)), rtol=checkFitTol, atol=checkFitTol):
                 warnings.warn(f"Alert:Final eigenvectors are not properly fitted. S=\n{Smat}")

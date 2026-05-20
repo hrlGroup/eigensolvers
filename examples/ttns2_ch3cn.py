@@ -144,8 +144,8 @@ guess.ttns.setDefault()
 options["linearSystemArgs"]["auxList"] = convergedStates
 guess.options = options
 # NOTE: Currently RenormalizedStateProjector only works for bra==ket,
-#       so it will not work for a getting the matrix representation in the Krylov space
-#       Thus only use it for solving the linear system (which should be enough)
+#       so it will not work for getting the matrix representation in the Krylov space.
+#       Therefore, only use it for solving the linear system.
 ev, tnsList, status = inexactLanczosDiagonalization(Hop,guess,sigma,L,maxit,eConv,
                                                     Hsolve=operator,
                                                     eShift=zpve,convertUnit="cm-1",

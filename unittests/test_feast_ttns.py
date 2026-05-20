@@ -116,7 +116,7 @@ class Test_feast_ttns(unittest.TestCase):
         typeClass = uvfeast[0].__class__
         
         with self.subTest("orthogonalization"):
-            ''' Returned basis in old form is orthogonal'''
+            '''Check that the returned basis is orthogonal.'''
             S = typeClass.overlapMatrix(uvfeast)
             np.testing.assert_allclose(S,np.eye(S.shape[0]),atol=1e-5)
 
@@ -134,29 +134,29 @@ class Test_feast_ttns(unittest.TestCase):
             np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5)
 
         with self.subTest("returnType"):
-            ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
+            '''Check that the returned eigenvalues and eigenvectors have the correct types.'''
             self.assertIsInstance(evfeast, np.ndarray)
             self.assertIsInstance(uvfeast, list)
             self.assertIsInstance(uvfeast[0], TTNSVector)
 
         with self.subTest("eigenvalue"):
-            ''' Checks accuracy of the calculated eigenvalues'''
+            '''Check accuracy of the calculated eigenvalues.'''
 
-            #All contour eigenvalues
+            # All contour eigenvalues.
             contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
             ncontour_evs = len(contour_evs)
             nfeast_ev = len(evfeast)
             self.assertTrue((ncontour_evs <= nfeast_ev),'All eigenvalues within contour must be calculated')
 
-            #eigenvalue accuracy:
+            # Eigenvalue accuracy.
             feast_evs = select_within_range(evfeast, self.rmin, self.rmax)[0]
             for i in range(len(contour_evs)):
                 target_value = contour_evs[i]
                 closest_value = find_nearest(feast_evs,target_value)[1]
-                self.assertTrue((abs(target_value-closest_value)<= 1e-4),'Not accurate up to 4-nd decimal place')
+                self.assertTrue((abs(target_value-closest_value)<= 1e-4),'Not accurate up to 1e-4')
     
         with self.subTest("eigenvector"):
-            ''' Checks accuracy of the calculated eigenvectors'''
+            '''Check accuracy of the calculated eigenvectors.'''
 
             contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
             for i in range(len(contour_evs)):

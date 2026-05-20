@@ -126,7 +126,7 @@ for ivec in range(nvectors):
 
 # ----------------- Residuals --------------------
 outfile = open("iterations_lanczos.out","a") 
-outfile.write("Norm of residuals (H\Psi - E\Psi)\n\n")
+outfile.write(r"Norm of residuals (H\Psi - E\Psi)"+"\n\n")
 formatStyle = "{:20} :: {:<20}"
 line = formatStyle.format("Eigenvalue","Norm in cm-1")
 outfile.write(line+"\n")

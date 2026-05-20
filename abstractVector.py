@@ -2,23 +2,18 @@ from abc import ABC, abstractmethod
 import numpy as np
 from scipy import linalg as la
 
-# file1: abstractVector.py holding these abstract functions list
-# file2: numpyVector.py :: specifications of the tasks for each functions defined earlier for ndarray
-# main.py: utilizing these class for main purpose, such as inexact_Lanczos.py
-
-# Abstract functions are here for initiation/listing
-# We name them and pass for later use
+# Abstract methods are listed here and implemented elsewhere by concrete vector classes.
 
 LINDEP_DEFAULT_VALUE = 1e-14
 
-# Specify abstractmethod whenever the task should be specified later
+# Use abstractmethod whenever a concrete vector class must define the behavior.
 class AbstractVector(ABC):
     
     @property
     @abstractmethod
     def hasExactAddition(self):
         """
-        Simplication of vector addition with its complex conjugate.
+        Simplification of vector addition with its complex conjugate.
         For example, c+c* = 2c when c=(a+ib)
         This summation is true for numpy vectors
         but is not exactly identical to 2c for TNSs
@@ -33,7 +28,7 @@ class AbstractVector(ABC):
     @property
     @abstractmethod
     def maxD(self) -> int:
-        """Returns maximum value of virtual bond dimensions of a vectors (only used for TTNSs)."""
+        """Return the maximum virtual bond dimension of a vector (only used for TTNSs)."""
         raise NotImplementedError
    
     @abstractmethod
@@ -62,7 +57,7 @@ class AbstractVector(ABC):
     
     @abstractmethod
     def normalize(self):
-        """ Normalizes in-place"""
+        """Normalize in place."""
         raise NotImplementedError
         
     @abstractmethod
@@ -92,13 +87,13 @@ class AbstractVector(ABC):
     
     @abstractmethod
     def applyOp(self,other):
-        ''' Apply rmatmul as other@self.array '''
+        '''Apply rmatmul as other@self.array.'''
         raise NotImplementedError
 
     @abstractmethod
     def compress(self):
-        """ Compress vector if it is compressible.
-        Note: May be a copy or a ref of `self`."""
+        """Compress a vector if it is compressible.
+        Note: This may return either a copy or a reference to `self`."""
         raise NotImplementedError
 
     @staticmethod
@@ -120,24 +115,24 @@ class AbstractVector(ABC):
     @staticmethod
     def orthogonalize_against_set(x,xs,lindep=LINDEP_DEFAULT_VALUE):
         '''
-        Orthogonalizes a vector against the previously obtained set of 
+        Orthogonalize a vector against the previously obtained set of
         orthogonalized vectors
-        x (In): vector to be orthogonalized 
-        xs (In): set of orthogonalized vector
-        lindep (optional): Parameter to check linear dependency
-        If it does not find linearly independent vector w.r.t. xs; it returns None
+        x (In): vector to be orthogonalized
+        xs (In): set of orthogonalized vectors
+        lindep (optional): parameter used to detect linear dependency
+        If no linearly independent vector is found with respect to xs, return None.
         '''
         raise NotImplementedError
     
     @staticmethod
     def solve(H, b, sigma, x0=None, opType="her",reverseGF=False):
-        ''' Linear equation (sigma*I-H) x =b solver
+        '''Solve the linear equation (sigma*I-H) x = b.
 
         :param opType: Operator type:
-            "gen" for generic operator, "sym" for (complex) symmetric, "her" for hermitian,
+            "gen" for generic operator, "sym" for (complex) symmetric, "her" for Hermitian,
             "pos" for positive definite
 
-         param reverseGF
+         param reverseGF:
              False for Green's function (sigma-H)
              True for reverse Green's function (H-sigma)
         '''
@@ -145,18 +140,18 @@ class AbstractVector(ABC):
 
     @staticmethod
     def matrixRepresentation(operator,vectors):
-        ''' Calculates and returns matrix in the "vectors" space of a *hermitian* operator. '''
+        '''Calculate and return the matrix representation in the "vectors" space of a Hermitian operator.'''
         raise NotImplementedError
     
     @staticmethod
     def overlapMatrix(vectors):
-        ''' Calculates overlap matrix of vectors'''
+        '''Calculate the overlap matrix of vectors.'''
         raise NotImplementedError
     
     @staticmethod
     def extendMatrixRepresentation(operator,vectors,opMat):
-        ''' Extends the existing operator matrix representation (opMat) 
-        with the elements of newly added vector
+        '''Extend the existing operator matrix representation (opMat)
+        with the elements of the newly added vector
         (last member of the "vectors" list)
 
         out: Extended matrix representation (opMat)'''
@@ -165,8 +160,8 @@ class AbstractVector(ABC):
     
     @staticmethod
     def extendOverlapMatrix(vectors,overlap):
-        ''' Extends the existing overlap matrix (overlap) 
-        with the elements of newly added vector 
+        '''Extend the existing overlap matrix (overlap)
+        with the elements of the newly added vector
         (last member of the "vectors" list)
 
         out: Extended overlap matrix (overlap)'''

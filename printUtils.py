@@ -7,8 +7,7 @@ from ttnsVector import TTNSVector
 
 # ****************************************************************************
 def convert(arr,eShift=0.0,unit='au'):
-    ''' For converting ndarray (energy or matrix) with 
-    adjusted eShift and unit conversion'''
+    '''Convert an ndarray (energy or matrix) with an eShift and unit conversion.'''
 
     arrShifted = None
     if unit == 'au':
@@ -21,7 +20,7 @@ def convert(arr,eShift=0.0,unit='au'):
 #                   Print modules for LANCZOS
 # ****************************************************************************
 class LanczosPrintUtils:
-    """ Print module for file header, footer, iteration outputs"""
+    """Print helper for file headers, footers, and iteration output."""
     def __init__(self,guessVector,sigma,L,maxit,eConv,checkFitTol, 
             writeOut,eShift,convertUnit,pick,status,
             outFileName=None, summaryFileName=None):
@@ -57,8 +56,7 @@ class LanczosPrintUtils:
             self.sumfile.close()
 
     def fileHeader(self):
-        """ Prints header with all input informations 
-        printInfo prints this header to the screen, recorded in sweepOutputs"""
+        """Print the header with all input information."""
         if not self.writeOut:
             return
 
@@ -81,7 +79,7 @@ class LanczosPrintUtils:
         lines = "*"*70 + "\n\t\tStarting computation\t\t\n"+dt_string+\
                 "*"*70+"\n\n"
 
-        # ..........................  general infos ..........................
+        # ..........................  general info ..........................
         nBlock = self.status["nBlock"]
         lines += f"# Inexact Lanczos with {nBlock} guess vectors"+"\n\n"
 
@@ -98,7 +96,7 @@ class LanczosPrintUtils:
         pickname = str(self.pick).split(" ")[1]
         lines += "{:10} {:>20}".format("pick",pickname)+"\n"
 
-        # ..........................  sweep infos numpyVector.................
+        # ..........................  sweep info numpyVector.................
         if self.typeClass is NumpyVector:
             solver = optLinear["linearSolver"]
             linearTol = optLinear["linear_tol"]
@@ -109,7 +107,7 @@ class LanczosPrintUtils:
             lines += formatStyle.format("solver",solver,"Linear solver")+"\n"
             lines += formatStyle.format("ltol",linearTol,\
                     "Tolerance: Linear solver")+"\n"
-    # ..........................  sweep infos ttnsVector......................
+    # ..........................  sweep info ttnsVector......................
         elif self.typeClass is TTNSVector:
             solver = optLinear["iterativeLinearSystemOptions"].solver
             siteLinearTol = optLinear["iterativeLinearSystemOptions"].tol
@@ -120,25 +118,25 @@ class LanczosPrintUtils:
 
             lines += formatStyle.format("solver",solver,"Linear solver")+"\n"
             lines += formatStyle.format("ltol1",siteLinearTol,\
-                    "Site tolerance:Linear solver")+"\n"
+                    "Site tolerance: Linear solver")+"\n"
             lines += formatStyle.format("maxIter",maxIter,\
                     "Iterative solver maximum iterations")+"\n"
             lines += formatStyle.format("lsweep",nsweep,\
                     "Number of DMRG sweeps: Linear solver")+"\n"
             lines += formatStyle.format("ltol2",globalLinearTol,\
-                    "global tolerance:Linear solver")+"\n"
+                    "Global tolerance: Linear solver")+"\n"
             lines += formatStyle.format("maxD",adaptLinear[0].maxD if adaptLinear is not None else -1,\
-                    "Maximum bond dimension:Linear solver")+"\n"
+                    "Maximum bond dimension: Linear solver")+"\n"
 
             fittingTol = optFitting["convTol"]
             nsweepFitting = optFitting["nSweep"]
             adaptFitting = optFitting["bondDimensionAdaptions"]
 
-            lines += formatStyle.format("ftol",fittingTol,"Fitting Tolerance")+"\n"
+            lines += formatStyle.format("ftol",fittingTol,"Fitting tolerance")+"\n"
             lines += formatStyle.format("fsweep",nsweepFitting,\
-                    "Number of sweeps:fitting")+"\n"
+                    "Number of sweeps: fitting")+"\n"
             lines += formatStyle.format("maxD",adaptFitting[0].maxD if adaptFitting is not None else -1,\
-                    "Maximum bond dimension:Fitting")+"\n"
+                    "Maximum bond dimension: Fitting")+"\n"
 
         # ..........................  Space for phase calculations ..........
         lines += formatStyle.format("Phase",self.status["phase"],\
@@ -162,8 +160,7 @@ class LanczosPrintUtils:
 # ****************************************************************************
 
     def fileFooter(self):
-        """ Prints footer with job complete message
-        printInfo prints this footer to the screen, recorded in sweepOutputs"""
+        """Print the footer with the job-complete message."""
         if not self.writeOut:
             return
         sumfile = self.sumfile
@@ -185,16 +182,16 @@ class LanczosPrintUtils:
 # ****************************************************************************
     
     def writeFile(self,label,*args):
-        """ A single print function for overlap, Hamitonian matrix,
+        """A single print function for overlap, Hamiltonian matrix,
         iteration details, bond dimensions, summary outputs and 
-        final eigenvalues"""
+        final eigenvalues."""
 
         if not self.writeOut:
             return
         sumfile = self.sumfile
         outfile = self.outfile
 
-    # ........................ OVERlAP MATRIX ........................
+    # ........................ OVERLAP MATRIX ........................
         if label == "overlap":
             Smat = args[0]
             condSmat = np.linalg.cond(Smat)
@@ -215,7 +212,7 @@ class LanczosPrintUtils:
             evalues = convert(args[0],self.eShift,self.convertUnit)
             outfile.write(f"{evalues}")
             outfile.write("\n")
-    # ...................... ITERATION INFOs ..............................
+    # ...................... ITERATION INFO ..............................
         elif label == "iteration":
             line = "\n\n"+"."*20+"\tInfo per iteration\t"+"."*20+"\n"
             line += "Lanczos iteration: "+str(args[0]["outerIter"])
@@ -277,7 +274,7 @@ class LanczosPrintUtils:
 #                   Print modules for FEAST
 # ****************************************************************************
 class FeastPrintUtils:
-    """ Print module for file header, footer, iteration outputs"""
+    """Print helper for file headers, footers, and iteration output."""
     def __init__(self,guessVector,nc,quad,rmin,rmax,eConv,maxit,writeOut,
             eShift,convertUnit,status,outFileName=None, summaryFileName=None):
         
@@ -313,8 +310,7 @@ class FeastPrintUtils:
             self.sumfile.close()
 
     def fileHeader(self):
-        """ Prints header with all input informations 
-        printInfo prints this header to the screen, recorded in sweepOutputs"""
+        """Print the header with all input information."""
         if not self.writeOut:
             return
          
@@ -335,10 +331,10 @@ class FeastPrintUtils:
         lines = "*"*70 + "\n\t\tStarting computation\t\t\n"+dt_string+\
                 "*"*70+"\n\n"
 
-        # ..........................  general infos ..........................
+        # ..........................  general info ..........................
         formatStyle = "{:12} {:>14} :: {:20}"
         lines += formatStyle.format("m0",self.subspace,\
-                "Subspace dimensions")+"\n"
+                "Subspace dimension")+"\n"
         lines += formatStyle.format("nc",self.nc,"Number of quadrature points")\
                 +"\n"
         lines += formatStyle.format("quad",self.quad,\
@@ -356,7 +352,7 @@ class FeastPrintUtils:
         lines += formatStyle.format("eShift",self.eShift,"shift energy")+"\n"
         lines += formatStyle.format("convertUnit",self.convertUnit,"convertUnit")+"\n"
 
-        # ..........................  sweep infos numpyVector.................
+        # ..........................  sweep info numpyVector.................
         if self.typeClass is NumpyVector:
             solver = optLinear["linearSolver"]
             linearTol = optLinear["linear_tol"]
@@ -367,7 +363,7 @@ class FeastPrintUtils:
             lines += formatStyle.format("solver",solver,"Linear solver")+"\n"
             lines += formatStyle.format("ltol",linearTol,\
                     "Tolerance: Linear solver")+"\n"
-    # ..........................  sweep infos ttnsVector......................
+    # ..........................  sweep info ttnsVector......................
         elif self.typeClass is TTNSVector:
             solver = optLinear["iterativeLinearSystemOptions"].solver
             siteLinearTol = optLinear["iterativeLinearSystemOptions"].tol
@@ -378,25 +374,25 @@ class FeastPrintUtils:
 
             lines += formatStyle.format("solver",solver,"Linear solver")+"\n"
             lines += formatStyle.format("ltol1",siteLinearTol,\
-                    "Site tolerance:Linear solver")+"\n"
+                    "Site tolerance: Linear solver")+"\n"
             lines += formatStyle.format("maxIter",maxIter,\
                     "Iterative solver maximum iterations")+"\n"
             lines += formatStyle.format("lsweep",nsweep,\
                     "Number of DMRG sweeps: Linear solver")+"\n"
             lines += formatStyle.format("ltol2",globalLinearTol,\
-                    "global tolerance:Linear solver")+"\n"
+                    "Global tolerance: Linear solver")+"\n"
             lines += formatStyle.format("maxD",adaptLinear[0].maxD,\
-                    "Maximum bond dimension:Linear solver")+"\n"
+                    "Maximum bond dimension: Linear solver")+"\n"
 
             fittingTol = optFitting["convTol"]
             nsweepFitting = optFitting["nSweep"]
             adaptFitting = optFitting["bondDimensionAdaptions"]
 
-            lines += formatStyle.format("ftol",fittingTol,"Fitting Tolerance")+"\n"
+            lines += formatStyle.format("ftol",fittingTol,"Fitting tolerance")+"\n"
             lines += formatStyle.format("fsweep",nsweepFitting,\
-                    "Number of sweeps:fitting")+"\n"
+                    "Number of sweeps: fitting")+"\n"
             lines += formatStyle.format("maxD",adaptFitting[0].maxD,\
-                    "Maximum bond dimension:Fitting")+"\n"
+                    "Maximum bond dimension: Fitting")+"\n"
 
         # ..........................  Space for phase calculations ..........
         lines += formatStyle.format("Phase",self.status["phase"],\
@@ -421,8 +417,7 @@ class FeastPrintUtils:
 # ****************************************************************************
 
     def fileFooter(self):
-        """ Prints footer with job complete message
-        printInfo prints this footer to the screen, recorded in sweepOutputs"""
+        """Print the footer with the job-complete message."""
         if not self.writeOut:
             return
         sumfile = self.sumfile
@@ -444,13 +439,13 @@ class FeastPrintUtils:
 # ****************************************************************************
     
     def writeFile(self,label,*args):
-        """ A single print function for overlap, Hamitonian matrix,
-        iteration details, summary output and final eigenvalues"""
+        """A single print function for overlap, Hamiltonian matrix,
+        iteration details, summary output and final eigenvalues."""
         if not self.writeOut:
             return
         sumfile = self.sumfile
         outfile = self.outfile
-    # ........................ OVERlAP MATRIX ........................
+    # ........................ OVERLAP MATRIX ........................
         if label == "overlap":
             outfile.write("OVERLAP MATRIX\n")
             outfile.write(f"{args[0]}")
@@ -467,7 +462,7 @@ class FeastPrintUtils:
             evalues = convert(args[0],self.eShift,self.convertUnit)
             outfile.write(f"{evalues}")
             outfile.write("\n")
-    # ...................... ITERATION INFOs ..............................
+    # ...................... ITERATION INFO ..............................
         elif label == "iteration":
             line = "\n\n"+"."*20+"\tInfo per iteration\t"+"."*20+"\n"
             line += "FEAST iteration: "+str(args[0]["outerIter"])+"\n"
@@ -486,7 +481,9 @@ class FeastPrintUtils:
 
             lines = "{:>4} {:>6}".format(it,quad)
            
-           # NOTE: Case for len(excitation) != subspace is missing (happens for FEAST).  After orthogonalization, the length of eigenvalues can be different than subspace. The printing of the summary file header needs to be changed there. S
+           # NOTE: The len(excitation) != subspace case is missing for FEAST.
+           # After orthogonalization, the number of eigenvalues can differ
+           # from the subspace size, so the summary-file header needs updating.
             for iExcitation in range(len(excitation)):
                 lines += "{:>16}".format(f"{excitation[iExcitation]:.08f}")
             

@@ -24,7 +24,7 @@ class Test_lanczos(unittest.TestCase):
         """Check that linear dependency is reported in the returned status."""
         evLanczos, uvLanczos, status = inexactLanczosDiagonalization(self.mat,self.guess,self.sigma,
                 self.L,self.maxit,self.eConv,pick=None,writeOut=False,
-                saveTNSsEachIteration=False)
+                saveAllVectors=False)
         self.assertTrue(status["lindep"])
         # After a dependent vector is found, the returned vector list should
         # only contain the independent Krylov vectors.

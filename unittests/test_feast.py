@@ -55,22 +55,22 @@ class Test_feast(unittest.TestCase):
                 writeOut=False)
 
         with self.subTest("returnType"):
-            ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
+            '''Check that the returned eigenvalues and eigenvectors have the correct types.'''
             self.assertIsInstance(evfeast, np.ndarray)
             self.assertIsInstance(uvfeast, list)
             self.assertIsInstance(uvfeast[0], NumpyVector)
         with self.subTest("eigenvalue"):
-            ''' Checks if the calculated eigenvalue is accurate to seventh decimal place'''
+            '''Check that the calculated eigenvalues are accurate enough.'''
             with self.subTest("All contour eigenvalues"):
                 contour_ev = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
                 ncontour_ev = len(contour_ev)
                 nfeast_ev = len(evfeast)
-                # Think in case of orthogonal basis
+                # Account for the orthogonal basis case.
                 self.assertTrue((ncontour_ev <= nfeast_ev), 'All eigenvalues within contour must be calculated')
             with self.subTest("eigenvalue accuracy"):
                 contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
         with self.subTest("back-transform"):
-            ''' Checks linear combination'''
+            '''Check the linear combination.'''
             typeClass = uvfeast[0].__class__
             S = typeClass.overlapMatrix(uvfeast[:-1])
             assert len(uvfeast) > 1
@@ -87,7 +87,7 @@ class Test_feast(unittest.TestCase):
                         = f"{ovlp=} but it should be +-1")
                 np.testing.assert_allclose(uvfeast[m].array,ovlp*bases[m].array,atol=1e-5)
         with self.subTest("orthonormal"):
-            ''' Returned basis in old form is orthogonal'''
+            '''Check that the returned basis is orthogonal.'''
             typeClass = uvfeast[0].__class__
             S = typeClass.overlapMatrix(uvfeast)
             np.testing.assert_allclose(S,np.eye(S.shape[0]),atol=1e-5)
@@ -102,12 +102,12 @@ class Test_feast(unittest.TestCase):
                 mat = uSH.T.conj()@S@uSH
                 np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5)
         with self.subTest("eigenvalue"):
-            ''' Checks if the calculated eigenvalue is accurate to seventh decimal place'''
+            '''Check that the calculated eigenvalues are accurate enough.'''
             with self.subTest("All contour eigenvalues"):
                 contour_ev = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
                 ncontour_ev = len(contour_ev)
                 nfeast_ev = len(evfeast)
-                # Think in case of orthogonal basis
+                # Account for the orthogonal basis case.
                 self.assertTrue((ncontour_ev <= nfeast_ev),'All eigenvalues within contour must be calculated')
 
             with self.subTest("eigenvalue accuracy"):
@@ -116,10 +116,10 @@ class Test_feast(unittest.TestCase):
                 for i in range(len(contour_evs)):
                     target_value = contour_evs[i]
                     closest_value = find_nearest(feast_evs,target_value)[1]
-                    self.assertTrue((abs(target_value-closest_value)<= 1e-4),'Not accurate up to 4-nd decimal place')
+                    self.assertTrue((abs(target_value-closest_value)<= 1e-4),'Not accurate up to 1e-4')
 
     def test_eigenvector(self):
-        ''' Checks if the calculated eigenvalue is accurate to fourth decimal place'''
+        '''Check that the calculated eigenvectors are accurate enough.'''
        
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
                 1e-12,40,writeOut=False)[0:2]
@@ -132,7 +132,7 @@ class Test_feast(unittest.TestCase):
             feastVector = uvfeast[idxT].array
 
             ovlp = np.vdot(exactVector,feastVector)
-            # testing overlap; 0.99 ovlp is enough for testing purpose
+            # Test overlap; 0.99 is enough for this test.
             np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-2, err_msg = f"{ovlp=} but it should be +-1")
             feastVector = feastVector * ovlp
             np.testing.assert_allclose(exactVector,feastVector,rtol=1e-2,atol=1e-2)
@@ -140,4 +140,3 @@ class Test_feast(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

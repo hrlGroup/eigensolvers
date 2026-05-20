@@ -7,14 +7,14 @@ from numpyVector import NumpyVector
 import util
 
 LINDEP_DEFAULT_VALUE = 1e-14 # Global variable
-# Lower value is better; TODO look for optimum value
+# Lower values are better; TODO: find the best value.
 #LINDEP_DEFAULT_VALUE = 1e-9 # Global variable
 
 # -----------------------------------------------------
 def trapezoidal(nc):
     '''
     input: nc, user-defined number of quadrature points
-    output: quadrature ponits and associated weights
+    output: quadrature points and associated weights
     '''
     points=np.zeros(nc)
     weights=np.zeros(nc)
@@ -29,8 +29,9 @@ def trapezoidal(nc):
 # -----------------------------------------------------
 # This function is copied from cross_filterdiag.py
 def eigRegularized(A, B, Q, tol):
-    """ Solve generalized eigenvalue problem by discarding all eigenvectors of B smaller than tol.
-    :returns Eigenvalue, eigenvectors
+    """Solve a generalized eigenvalue problem.
+    Eigenvectors of B with eigenvalues smaller than tol are discarded.
+    :returns: eigenvalues and eigenvectors
     """
     if B is None:
         Bq = (Q.T.conj())@Q
@@ -72,20 +73,20 @@ def eigRegularized_list(Amat,B, Q, atol):
             res[j,:] += uvals[k,j] * Q[k] 
     return evals, res
 # -----------------------------------------------------
-#find maximum residual inside contour
+# Find the maximum residual inside the contour.
 def getRes(lest,x,resvecs,eps):
     '''
-    Calculates maximum residual inside the contour subspace
+    Calculate the maximum residual inside the contour subspace.
     '''
     n,m0 = x.shape
     resnorms = np.zeros(m0)
 
-    # step1: creates an array with residual norms (divided by x norms) 
+    # Step 1: create an array with residual norms divided by x norms.
     for i in range(m0):
         if (la.norm(x[:,i]) > 1e-14):
             resnorms[i]= la.norm(resvecs[:,i])/la.norm(x[:,i])
 
-    # step2: checks if how many resnorms follow convergence
+    # Step 2: count how many residual norms satisfy the convergence criterion.
     s = []
     nsubspace = 0                                     # n subspace states satisfying convergence criteria
     for k in range(m0):
@@ -93,8 +94,8 @@ def getRes(lest,x,resvecs,eps):
             nsubspace = nsubspace + 1                 # when feast subspace is identical to exact space; it is zero.
             s.append(k)
     
-    # step3: if all resnorms achieved convergence, then return maximum value from them
-    #         otherwise go through all residual norms and print out the maximum from them
+    # Step 3: if all residual norms converged, return their maximum.
+    # Otherwise, return the maximum among all residual norms.
     maxres = 0.0
     if(nsubspace == 0):
         maxres = np.max(resnorms)
@@ -111,8 +112,8 @@ def getRes(lest,x,resvecs,eps):
 # -----------------------------------------------------
 def select_within_range(in_arr, arr_min, arr_max):
     '''
-    Returns elements of an array(in_arr) from the selected interval arr_min and arr_max
-    out_arr: array with element within specified range
+    Return elements of an array (in_arr) from the selected interval [arr_min, arr_max].
+    out_arr: array with elements within the specified range
     rangeIdx: Indices of the elements in the original array
     '''
     out_arr = []
@@ -132,7 +133,7 @@ def find_nearest(array, value):
 # -----------------------------------------------------
 def nearest_degenerate(array, value):
     array = np.asarray(array)
-    #Searches for duplicate element
+    # Search for duplicate elements.
     degen = 0
     for i in range(0, len(array)):
         for j in range(i+1, len(array)):
@@ -144,9 +145,9 @@ def nearest_degenerate(array, value):
     return idx, array[idx]
 # -----------------------------------------------------
 def quadraturePointsWeights(nc:int, quad:str, positiveHalf=True):
-    ''' Returns `nc` quadrature points and weights based on quadrature `quad`.
+    '''Return `nc` quadrature points and weights based on quadrature `quad`.
     Currently supported: legendre, hermite, trapezoidal
-     positiveHalf: True => returns only points on the positive half circle
+     positiveHalf: True => return only points on the positive half circle
             This is fine for Hermitian problems.
             See  PRB 79, 115112 (2009); eqn. 4, 10
     '''
@@ -206,15 +207,14 @@ def headerBot(method,yesBot=False):
         print("*"*nstars)
 
 def basisTransformation(bases: "List[AbstractVector]",coeffs: np.ndarray):
-    ''' Basis transformation with eigenvectors
-    and Krylov bases
+    '''Transform a Krylov basis with eigenvector coefficients.
 
     In: bases -> List of bases for combination
         coeffs -> coefficients used for the combination
             Can be a 1D array if only one vector should be transformed.
 
     Out: combBases -> combination results.
-        Note that this MAY be a reference of `bases`.
+        Note that this MAY be a reference to `bases`.
     '''
 
     typeClass = bases[0].__class__
@@ -231,11 +231,11 @@ def basisTransformation(bases: "List[AbstractVector]",coeffs: np.ndarray):
     return combBases
 
 def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
-    """ Extracts out linearly independent vectors from the overlap matrix `oMat` and 
+    """Extract linearly independent vectors from the overlap matrix `oMat`.
     idx : (Boolean array) indices of the returned vectors
-          True if the element is linealy independent
-    :returns info (is all linear independent: True or not), vectors
-    returns orthogonalized vectors (vector*S-1/2).
+          True if the element is linearly independent
+    :returns: info (whether all vectors are linearly independent), vectors
+    Returns orthogonalized vectors (vector*S-1/2).
     """
     evq, uvq = sp.linalg.eigh(oMat)
     idx = evq > tol
@@ -249,12 +249,12 @@ def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
 def eigenvalueResidual(ev:np.ndarray,reference:np.ndarray,
                        eigenvalueRange=None):
     '''
-    Eigenvalue residual calculation
+    Eigenvalue residual calculation.
     Residual = [sum abs(reference-ev)]/[sum abs(ev)]
-    for eigenvalues of i and i-1 th iterations
+    for eigenvalues from the current and previous iterations.
 
     `eigenvalueRange`: list of eigenvalue minimum and maximum values
-    If provided, Eigenvalues within the range are only considered
+    If provided, only eigenvalues within the range are considered.
     '''
 
     absDiff = 0.0
@@ -262,7 +262,7 @@ def eigenvalueResidual(ev:np.ndarray,reference:np.ndarray,
     
     if eigenvalueRange is not None:
         assert (len(eigenvalueRange) == 2), 'Eigenvalue range list for eigenvalue \
-                residual computation should be two (with max and min limits)'
+                residual computation should have two entries (min and max limits)'
         emin = eigenvalueRange[0]
         emax = eigenvalueRange[1]
         
@@ -290,10 +290,10 @@ def eigenvalueResidual(ev:np.ndarray,reference:np.ndarray,
 
 # -----------------------------------------------------
 def calculateTarget(eigenvalues, indx, tol=1e-14):
-    ''' Calculates target for the given 
-    eigenvalues (here, exact eigenvalues) for a specific 
-    index (indx)
-    Checks if the nearest eigenvalues are not degenerate
+    '''Calculate a target for the given eigenvalues.
+    The eigenvalues are exact reference eigenvalues, and indx selects the
+    target index.
+    Check if the nearest eigenvalues are not degenerate
     for tolerance, tol (default: 1e-14)'''
 
     ediff1 = eigenvalues[indx] - eigenvalues[indx-1] 
@@ -303,10 +303,10 @@ def calculateTarget(eigenvalues, indx, tol=1e-14):
     return target
 
 def get_pick_function_maxOvlp(toCompare):
-    """ Returns pick function 
-        toCompare -> Reference for overlap evaluation"""
+    """Return a pick function.
+        toCompare -> reference for overlap evaluation"""
     def pick(transformMat,vectors,eigenvalues):
-        """ Picks eigenstate index of maximum overlap to reference
+        """Pick eigenstate indices by maximum overlap with the reference.
         In: transformMat -> transformation matrix from Krylov
                             vectors to Lanczos eigenvectors
             vectors->   Krylov vectors (list)
@@ -328,26 +328,26 @@ def get_pick_function_maxOvlp(toCompare):
     return pick
 
 def get_pick_function_close_to_sigma(toCompare):
-    """ Returns pick function 
-        toCompare -> Reference for nearest eigenvalue evaluation"""
+    """Return a pick function.
+        toCompare -> reference for nearest eigenvalue evaluation"""
     def pick(transformMat,vectors,eigenvalues):
-        """ Picks eigenstates closest to target eigenvalue
+        """Pick eigenstates closest to the target eigenvalue.
         In: transformMat -> transformation matrix from Krylov
                             vectors to Lanczos eigenvectors
             vectors->   Krylov vectors (list)
             eigenvalues ->   Lanczos eigenvalues
 
-        Out: idx (np array) -> index (or indices) of eigenstates 
+        Out: idx (np array) -> index (or indices) of eigenstates
         """
         idx = np.argsort(np.abs(eigenvalues - toCompare))
         return idx
     return pick
 
 def lowdinOrthoMatrix(S,status):
-    """ Calculates transformation matrix from overlap matrix 
+    """Calculate the transformation matrix from an overlap matrix.
 
     In: lindep (default value is 1e-14, lowdinOrtho())
-        printObj (opional): print object
+        printObj (optional): print object
 
     Out: status (dict: updated lindep)
          uS: transformation matrix
@@ -358,19 +358,18 @@ def lowdinOrthoMatrix(S,status):
     return status, uS
     
 def diagonalizeHamiltonian(X,Hmat,printObj=None):
-    ''' Solves eigenvalue problem for Hmat using transformation `X`
+    '''Solve the eigenvalue problem for Hmat using transformation `X`.
 
     In:
         X -> transformation matrix
         Hmat -> previous matrix representation
-        printObj (opional): print object
+        printObj (optional): print object
 
     Out:
          ev -> eigenvalues
          uv -> eigenvectors
-    Additional: prints matrix representation,
-                eigenvalues in detailed 
-    output file ("iterations_lanczos.out", default)'''
+    Additional: prints the matrix representation and eigenvalues in the
+    detailed output file ("iterations_lanczos.out", default).'''
 
     if printObj is not None:
         printObj.writeFile("hamiltonian",Hmat,"beforeOrthogonalization")

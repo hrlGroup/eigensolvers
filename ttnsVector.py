@@ -1,5 +1,5 @@
-""" Tree Tensor Network State (TTNS) vector wrapper"""
-from __future__ import annotations # class returns class in typehint
+"""Tree Tensor Network State (TTNS) vector wrapper."""
+from __future__ import annotations # allow class names in type hints
 import numpy as np
 from abstractVector import AbstractVector, LINDEP_DEFAULT_VALUE
 from typing import List, Optional, Dict
@@ -19,21 +19,21 @@ class TTNSVector(AbstractVector):
     def __init__(self, ttns: TTNS, options:Dict[str, Dict]):
         """ TTNSVector class
 
-        `options` should be an optional dictionary of options containing:
-            `sweepAlgorithmArgs` for default options for different sweepalgorithms
-            `stateFittingArgs` overwrites `sweepAlgorithmArgs` for `StateFitting`
-            `orthogonalizationArgs` overwrites `sweepAlgorithmArgs` for `Orthogonalization`
-            `linearSystemArgs` overwrites `sweepAlgorithmArgs` for `LinearSystem`.
-            `compressArgs` overwrites ``sweepAlgorithmArgs`` for `compress`.
-        See the respective classes in `SweepAlgorithms` for the possible options.
+        `options` is a dictionary that may contain:
+            `sweepAlgorithmArgs`: default options for different sweep algorithms
+            `stateFittingArgs`: overrides `sweepAlgorithmArgs` for `StateFitting`
+            `orthogonalizationArgs`: overrides `sweepAlgorithmArgs` for `Orthogonalization`
+            `linearSystemArgs`: overrides `sweepAlgorithmArgs` for `LinearSystem`
+            `compressArgs`: overrides `sweepAlgorithmArgs` for `compress`
+        See the respective classes in `SweepAlgorithms` for available options.
         """
         self.ttns = ttns
         self.options = options
-        # default options
+        # Default options.
         self.options["sweepAlgorithmArgs"] = options.get("sweepAlgorithmArgs", {"nSweep":1000, "convTol":1e-8})
         assert self.options["sweepAlgorithmArgs"] is not None
         op = self.options["sweepAlgorithmArgs"]
-        # some changed default options
+        # Adjust selected defaults.
         op["indent"] = op.get("indent","\t")
         self.options["stateFittingArgs"] = options.get("stateFittingArgs", self.options["sweepAlgorithmArgs"])
         self.options["orthogonalizationArgs"] = options.get("orthogonalizationArgs", self.options["sweepAlgorithmArgs"])
@@ -47,10 +47,10 @@ class TTNSVector(AbstractVector):
     @property
     def hasExactAddition(self):
         """
-        Simplication of vector addition with its complex conjugate.
+        Simplification of vector addition with its complex conjugate.
         For example, c+c* = 2c when c=(a+ib)
         This summation is true for numpy vectors
-        But does not exactly same as 2c for TTNS
+        but is not exactly identical to 2c for TTNS.
         """
         return False
 
@@ -60,8 +60,8 @@ class TTNSVector(AbstractVector):
 
     @property
     def maxD(self) -> int:
-        """Returns maximum value of virtual bond dimensions of a vectors.
-        It is a wrapper function of ttns.maxD(), used for TTNSVectors"""
+        """Return the maximum virtual bond dimension of a vector.
+        This wraps ttns.maxD() for TTNSVector."""
         return self.ttns.maxD()
    
     def __len__(self):
@@ -69,7 +69,7 @@ class TTNSVector(AbstractVector):
 
     def __mul__(self, other: Number) -> TTNSVector:
         assert isinstance(other, Number)
-        warnings.warn("This copies the TTNS. This should be avoided! use inplace")
+        warnings.warn("This copies the TTNS. Prefer in-place scaling.")
         new = self.copy()
         new.ttns.rootNode.tens *= other
         return new
@@ -108,7 +108,7 @@ class TTNSVector(AbstractVector):
 
     def vdot(self, other: TTNSVector, conjugate=True) -> Number:
         if not conjugate:
-            # need to change RenormalizedDot accordingly
+            # RenormalizedDot would need to be changed accordingly.
             raise NotImplementedError
         return bracket(self.ttns, other.ttns)
 
@@ -129,19 +129,19 @@ class TTNSVector(AbstractVector):
         raise NotImplementedError
 
     def compress(self):
-        """ Compresses bond dimension of TTNS"""
+        """Compress the bond dimension of a TTNS."""
         
         args = self.options["compressArgs"]
         out = self.copy()
         solver = StateFitting(self.ttns, out.ttns, [1.0], **args)
         converged, optVal = solver.run()
         if not converged:
-            warnings.warn("compress: TTNS sweeps not converged!")
+            warnings.warn("compress: TTNS sweeps did not converge!")
         return out
 
     @staticmethod
     def linearCombination(vectors: List[TTNSVector], coeffs:Optional[List[Number]]=None) -> TTNSVector:
-        # Initial guess: The one with largest coefficient.
+        # Initial guess: use the vector with the largest coefficient.
         if coeffs is not None:
             toOpt = vectors[np.argmax(np.abs(coeffs))].copy()
         else:
@@ -151,7 +151,7 @@ class TTNSVector(AbstractVector):
                         **vectors[0].options["stateFittingArgs"])
         converged, optVal = solver.run()
         if not converged:
-            warnings.warn("linearCombination: TTNS sweeps not converged!")
+            warnings.warn("linearCombination: TTNS sweeps did not converge!")
         return toOpt
 
     @staticmethod
@@ -167,7 +167,7 @@ class TTNSVector(AbstractVector):
                                          normalize=False,
                                          **options)
         if x.norm()**2 < lindep:
-            # TODO would be better to just return what I have # not priority
+            # TODO: It may be better to return the current vector.
             return None
         else:
             x.normalize()
@@ -178,10 +178,10 @@ class TTNSVector(AbstractVector):
               x0: Optional[TTNSVector]=None,
               opType = "her",reverseGF=False) -> TTNSVector:
         if x0 is None:
-            # TODO think about best options.
+            # TODO: decide on the best default initial guess.
             #   D=1 TTNS?
-            # x0=b corresponds to residual of x0 = 0 (LHS x0 - b)
-            # the sign does not matter
+            # x0=b corresponds to the residual of x0 = 0 (LHS x0 - b).
+            # The sign does not matter.
             x0 = b.copy()
         op = getRenormalizedOp(x0.ttns, H, x0.ttns)
 
@@ -191,7 +191,7 @@ class TTNSVector(AbstractVector):
             LHS = SumOfOperators([op, getRenormalizedOp(x0.ttns, sigma, x0.ttns)], coeffs=coeffs)
         else:
             LHS = op
-        assert "lhsOpType" not in x0.options["linearSystemArgs"] # or just delete it in a copy of the dict
+        assert "lhsOpType" not in x0.options["linearSystemArgs"] # or delete it in a copy of the dict
         solver = LinearSystem(x0.ttns if x0 is not None else None,
                               LHS,
                               b.ttns,
@@ -199,12 +199,12 @@ class TTNSVector(AbstractVector):
                               **x0.options["linearSystemArgs"])
         converged, val = solver.run()
         if not converged:
-            warnings.warn("solve: TTNS sweeps not converged!")
+            warnings.warn("solve: TTNS sweeps did not converge!")
         return x0
 
     @staticmethod
     def matrixRepresentation(operator, vectors:List[TTNSVector]):
-        # vv assuming that operator has the same dtype
+        # Assume that the operator has the same dtype.
         dtype = np.result_type(*[v.dtype for v in vectors])
         N = len(vectors)
         M = np.empty([N,N],dtype=dtype)
@@ -219,13 +219,13 @@ class TTNSVector(AbstractVector):
 
     @staticmethod
     def overlapMatrix(vectors:List[TTNSVector]):
-        ''' Calculates overlap matrix of tensor network states'''
+        '''Calculate the overlap matrix of tensor network states.'''
         return _overlapMatrix([v.ttns for v in vectors])
     
     @staticmethod
     def extendMatrixRepresentation(operator, vectors:List[TTNSVector],opMat:np.ndarray):
-        ''' Extends the existing operator matrix representation (opMat) 
-        with the elements of newly added vector
+        '''Extend the existing operator matrix representation (opMat)
+        with the elements of the newly added vector
         (last member of the "vectors" list)
 
         out: Extended matrix representation (opMat)'''
@@ -243,8 +243,8 @@ class TTNSVector(AbstractVector):
  
     @staticmethod
     def extendOverlapMatrix(vectors:List[TTNSVector],overlap:np.ndarray):
-        ''' Extends the existing overlap matrix (overlap) 
-        with the elements of newly added vector 
+        '''Extend the existing overlap matrix (overlap)
+        with the elements of the newly added vector
         (last member of the "vectors" list)
 
         out: Extended overlap matrix (overlap)'''

@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 def _callIterativeSolver(solver, linOp, rhs, x0, tol, atol, maxiter):
-    # "tol" got removed in newer scipy release
+    # "tol" was removed in newer SciPy releases.
     kwargs = {"x0": x0, "maxiter": maxiter}
     parameters = inspect.signature(solver).parameters
     if "rtol" in parameters:
@@ -25,15 +25,14 @@ def _callIterativeSolver(solver, linOp, rhs, x0, tol, atol, maxiter):
 
 
 ####################################################################
-# Creates a numpyVector class, which has defined elementary operations
+# Create a NumpyVector class with the required elementary operations.
 ####################################################################
 
-# file1:   abs_funcs.py holding these abstract functions list
-# file2:   numpyVector.py :: specifications of the tasks for each functions 
-#          defined earlier for ndarray
-# main.py: utilizing these class for main purpose, such as inexact_Lanczos.py
+# file1: abstractVector.py defines the abstract method list.
+# file2: numpyVector.py implements those methods for ndarray.
+# main.py: uses these classes for the main calculation, such as inexact_Lanczos.py.
 
-# Assign the task for the functions initiated in abstract class
+# Implement the methods defined by the abstract class.
 # -------------------------------------------------------------
 class NumpyVector(AbstractVector):
 
@@ -53,10 +52,10 @@ class NumpyVector(AbstractVector):
     @property
     def hasExactAddition(self):
         """
-        Simplication of vector addition with its complex conjugate.
+        Simplification of vector addition with its complex conjugate.
         For example, c+c* = 2c when c=(a+ib)
         This summation is true for numpy vectors
-        But does not exactly same as 2c for TTNS
+        but is not exactly identical to 2c for TTNS.
         """
         return True
         
@@ -66,7 +65,7 @@ class NumpyVector(AbstractVector):
      
     @property
     def maxD(self) -> int:
-        # zero means no virtual bonds, isolated vector
+        # Zero means no virtual bonds; this is an isolated vector.
         return 0
 
     def __mul__(self,other):
@@ -120,7 +119,7 @@ class NumpyVector(AbstractVector):
         np.savez(str(filename), **saveDict)
 
     def applyOp(self,other):
-        ''' Apply rmatmul as other@self.array '''
+        '''Apply rmatmul as other@self.array.'''
         return NumpyVector(other@self.array,self.options)
 
     def compress(self):
@@ -144,14 +143,14 @@ class NumpyVector(AbstractVector):
 
     def orthogonalize_against_set(x, qs, lindep=LINDEP_DEFAULT_VALUE):
         '''
-        Orthogonalizes a vector against the previously obtained set of 
+        Orthogonalize a vector against the previously obtained set of
         orthogonalized vectors
-        x (In): vector to be orthogonalized 
-        xs (In): set of orthogonalized vector
-        lindep (optional): Parameter to check linear dependency
-                          Deafult value is LINDEP_DEFAULT_VALUE
+        x (In): vector to be orthogonalized
+        qs (In): set of orthogonalized vectors
+        lindep (optional): parameter used to detect linear dependency
+                          Default value is LINDEP_DEFAULT_VALUE
                           See module abstractVector.py
-        If it does not find linearly independent vector w.r.t. xs; it returns None
+        If no linearly independent vector is found with respect to qs, return None.
         '''
         nv = len(qs)
         for i in range(nv):
@@ -185,24 +184,24 @@ class NumpyVector(AbstractVector):
             wk,conv = _callIterativeSolver(scipy.sparse.linalg.gcrotmk, linOp, b.array, x0, tol, atol, maxiter)
         elif options["linearSolver"] == "minres":
             wk,conv = _callIterativeSolver(scipy.sparse.linalg.minres, linOp, b.array, x0, tol, None, maxiter)
-        elif options["linearSolver"] == "pardiso": # only for comparing with fortran
+        elif options["linearSolver"] == "pardiso": # only for comparison with Fortran
             if not reverseGF:
                 A1 = csc_matrix(sigma*np.eye(n)-H)
             else:
                 A1 = csc_matrix(H-sigma * np.eye(n))
             b1 = csc_matrix(np.reshape(b.array,(n,1)))
             wk = spsolve(A1,b1)
-            conv = 0 # converges, it is exact
+            conv = 0 # Direct solve; treat it as converged.
         else:
             raise Exception("Got linear solver other than gcrotmk, minres and pardiso!")
 
         if conv != 0:
             warnings.simplefilter('error', UserWarning)
-            warnings.warn("Warning:: Iterative solver is not converged ")
+            warnings.warn("Warning: iterative solver did not converge.")
         return NumpyVector(wk,b.options)
 
     def matrixRepresentation(operator,vectors):
-        ''' Calculates and returns matrix in the "vectors" space '''
+        '''Calculate and return the matrix representation in the "vectors" space.'''
         m = len(vectors)
         dtype = vectors[0].dtype
         qtAq = np.zeros((m,m),dtype=dtype)
@@ -214,7 +213,7 @@ class NumpyVector(AbstractVector):
         return qtAq
 
     def overlapMatrix(vectors):
-        ''' Calculates overlap matrix of vectors'''
+        '''Calculate the overlap matrix of vectors.'''
 
         m = len(vectors)
         dtype = vectors[0].dtype
@@ -227,8 +226,8 @@ class NumpyVector(AbstractVector):
         return Smat
     
     def extendMatrixRepresentation(operator,vectors,opMat):
-        ''' Extends the existing operator matrix representation (opMat) 
-        with the elements of newly added vector
+        '''Extend the existing operator matrix representation (opMat)
+        with the elements of the newly added vector
         (last member of the "vectors" list)
 
         out: Extended matrix representation (opMat)'''
@@ -245,8 +244,8 @@ class NumpyVector(AbstractVector):
         return opMat
 
     def extendOverlapMatrix(vectors,overlap):
-        ''' Extends the existing overlap matrix (overlap) 
-        with the elements of newly added vector 
+        '''Extend the existing overlap matrix (overlap)
+        with the elements of the newly added vector
         (last member of the "vectors" list)
 
         out: Extended overlap matrix (overlap)'''

@@ -14,16 +14,16 @@ from magic import ipsh
 from printUtils import FeastPrintUtils
 
 def _getStatus(status,guess):
-    ''' Dictionary for storing info of stage of the computation
-    In: guess: Guess vector to access exact addition property
+    '''Build a dictionary for storing the computation status.
+    In: guess: guess vector used to access the exact-addition property
     
-    flagAddition: Boolean, True if linear combination is accurate 
-    isConverged: Status of eigenvalue residual convergence
-    phase: Stage of phase calculations
-    startTime: Starting time 
+    flagAddition: Boolean, True if the linear combination is accurate
+    isConverged: status of eigenvalue residual convergence
+    phase: stage of phase calculations
+    startTime: starting time
     runTime: run time in seconds
 
-    Out: StatusUp: Initiated and updated dictionary
+    Out: StatusUp: initialized and updated dictionary
     '''
 
     statusUp ={"flagAddition":guess[0].hasExactAddition,
@@ -43,37 +43,37 @@ def _getStatus(status,guess):
     return statusUp
 
 def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor):
-    ''' Calculates k-th quadrature Qquad_k assuming `Amat` is Hermitian
+    '''Calculate k-th quadrature Qquad_k assuming `Amat` is Hermitian.
     
     For Hermitian matrix:
-    Qquad_k=-0.25*w_k*r{exp(i*angle_k)G(z)Y+exp(-i*theta)G\dagger(z)Y}
+    Qquad_k=-0.25*w_k*r{exp(i*angle_k)G(z)Y+exp(-i*theta)G^dagger(z)Y}
     
-    For real symm matrix:
+    For a real symmetric matrix:
     Qquad_k=-0.50*w_k*Real{r*exp(i*angle_k)G(z)Y}
     
-    G(z)Y == Qe => From liner solver: (z*I-A)Qe = Y
-    
+    G(z)Y == Qe => From linear solver: (z*I-A)Qe = Y
+
     In: Amat => Matrix A for the problem Ax = ex
                 Either as ndarray, linear operator or SOP
         guess_b => Guess for b for solving Qe as in linear system Ax = b
-        z => k-th coutour point 
+        z => k-th contour point
         radius => radius of the contour
-        angle => k-th countor angle
+        angle => k-th contour angle
         weight => k-th quadrature distribution weight
         contourEllipseFactor => contour shape factor (see below)
     
     Out: Qquad_k => k-th quadrature vector
-    N.T.: exp(+/-i*theta) is expanded as 
+    Note: exp(+/-i*theta) is expanded as
     contourEllipseFactor*cos(theta)+/-isin(theta)
-    This is to change countour shape
+    This changes the contour shape.
     e.g., contourEllipseFactor = 1.0, circular contour
           contourEllipseFactor = 0.3, ellipse contour
     
     This contourEllipseFactor is implemented in Polizzi's code.
-    It is necessary for testing fortran data.
+    It is necessary for testing Fortran data.
     '''
 
-    b = guess_b # copying of guess to unalter guess
+    b = guess_b # copy the guess so the original is not altered
     typeClass = b.__class__
     if abs(z.imag) < 1e-15:
         # Some contours are on the real axis only
@@ -103,7 +103,7 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor)
     return Qquad_k
 
 def updateQ(Q,im0,Qquad_k,k):
-    ''' Adds k-th quadrature solution to the existing Q
+    '''Add the k-th quadrature solution to the existing Q.
     In: Q => Q vectors
         im0 => im0-th vector to be updated
         Qquad_k => k-th quadrature for the im0-th 
@@ -127,31 +127,31 @@ def feastDiagonalization(A, Y: list[AbstractVector],
                          nc, quad, eMin, eMax, eConv, maxit, contourEllipseFactor=1.0,
                          writeOut=True, eShift=0.0, 
                          convertUnit="au", outFileName=None, summaryFileName=None):
-    """ FEAST diagonalization of A
+    """FEAST diagonalization of A.
 
     See Polizzi, PRB, 79, 115112 (2009) 10.1103/PhysRevB.79.115112
     and Baiardi, Kelemen, Reiher, JCTC, 18, 1415 (2021) 10.1021/acs.jctc.1c00984
 
     Input parameters
     ----------------
-    A => matrix or linearoperator or SOP operator
+    A => matrix, linear operator, or SOP operator
          Note: Must be Hermitian. 
          Otherwise, `calculateQuadrature` needs to be adapted.
     Y => Initial guess of vectors.
     nc => number of quadrature points
     quad => quadrature points distribution
-            Avaiable options - "legendre", "hermite", "trapezoidal"
+            Available options - "legendre", "hermite", "trapezoidal"
     eMin => eigenvalue lower limit
     eMax => eigenvalue upper limit
     eConv => eigenvalue residual convergence tolerance
              Residual is calculated through 
-             Sum |E - Eprev| / sum(abs(E),
+             Sum |E - Eprev| / sum(abs(E)),
              where E (Eprev) is the eigenvalue vector of the current 
              (previous) iteration.
     maxit => maximum feast iterations
-    contourEllipseFactor (optional) => Countor shape factor
+    contourEllipseFactor (optional) => contour shape factor
                                        See `calculateQuadrature`
-    writeOut (optional) => Instruction to writing output files
+    writeOut (optional) => whether to write output files
     eShift (optional) => shift value for printing. 
                          Assuming `A` is shifted by this value.
     convertUnit (optional) => unit for printing
@@ -171,7 +171,7 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     eRadius = (eMax - eMin) * 0.5
     
 
-    # numerical quadrature points.
+    # Numerical quadrature points.
     gk, wk = quadraturePointsWeights(nc, quad, positiveHalf=True)
     pi = np.pi
     
@@ -192,14 +192,14 @@ def feastDiagonalization(A, Y: list[AbstractVector],
             # Polizzi (13,14); Baiardi uses slightly different equation
             theta = -(pi*0.5)*(gk[k]-1) # Polizzi (13)
             # z =(eMin + eMax) * 0.5 + eRadius  * exp(2pi i theta)
-            # here changed to allow for ellipse and not circle on imag axis
+            # Allow an ellipse instead of a circle on the imaginary axis.
             z = (eMin + eMax) * 0.5 + eRadius * (math.cos(theta) + contourEllipseFactor * 1.0j * math.sin(theta) )
             
             for im0 in range(N_SUBSPACE):
                 Qquad_k = calculateQuadrature(A,Y[im0],z,eRadius,theta,wk[k],contourEllipseFactor)
                 Q = updateQ(Q,im0,Qquad_k,k)
         
-        # eigh in Lowdin orthogonal basis
+        # Solve the eigenvalue problem in the Lowdin orthogonal basis.
         Smat = typeClass.overlapMatrix(Q)
         Hmat = typeClass.matrixRepresentation(A, Q)
         
