@@ -47,16 +47,16 @@ class Test_lanczos(unittest.TestCase):
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos)
         with self.subTest("returnType"):
-            '''Check that the returned eigenvalues and eigenvectors have the correct types.'''
+            """Check that the returned eigenvalues and eigenvectors have the correct types."""
             self.assertIsInstance(evLanczos, np.ndarray)
             self.assertIsInstance(uvLanczos, list)
             self.assertIsInstance(uvLanczos[0], NumpyVector)
         with self.subTest("orthogonal"):
-            '''Check that the returned basis is orthogonal.'''
+            """Check that the returned basis is orthogonal."""
             typeClass = uvLanczos[0].__class__
             np.testing.assert_allclose(S,np.eye(S.shape[0]),atol=1e-5)
         with self.subTest("transformationMatrix"):
-            ''' XH@S@X = 1'''
+            """ XH@S@X = 1"""
             assert len(uvLanczos) > 1
             S1 = typeClass.overlapMatrix(uvLanczos)
             Hmat = typeClass.matrixRepresentation(self.mat,uvLanczos)
@@ -66,7 +66,7 @@ class Test_lanczos(unittest.TestCase):
             mat = uSH.T.conj()@S@uSH
             np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5)
         with self.subTest("extension"):
-            '''Check that matrix extension works.'''
+            """Check that matrix extension works."""
             Sfull = S
             S1 = typeClass.overlapMatrix(uvLanczos[:-1])
             _S = typeClass.extendOverlapMatrix(uvLanczos,S1)
@@ -76,12 +76,12 @@ class Test_lanczos(unittest.TestCase):
             np.testing.assert_allclose(_S,Sfull,atol=1e-9)
             np.testing.assert_allclose(Hmat,Hmatfull,atol=1e-9)
         with self.subTest("eigenvalue"):
-            '''Check that the calculated eigenvalue is accurate enough.'''
+            """Check that the calculated eigenvalue is accurate enough."""
             target_value = find_nearest(evLanczos,self.sigma)[1]
             closest_value = find_nearest(self.ev,self.sigma)[1]        # comparing with exact value
             self.assertTrue((abs(target_value-closest_value)<= 1e-4),'Not accurate up to 1e-4')
         with self.subTest("eigenvector"):
-            '''Check that the calculated eigenvector is accurate enough.'''
+            """Check that the calculated eigenvector is accurate enough."""
             idxE = find_nearest(self.evEigh,self.sigma)[0]
             idxT = find_nearest(evLanczos,self.sigma)[0]
             exactVector = self.uvEigh[:,idxE]

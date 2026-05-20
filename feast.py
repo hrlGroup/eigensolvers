@@ -14,7 +14,7 @@ from magic import ipsh
 from printUtils import FeastPrintUtils
 
 def _getStatus(status,guess):
-    '''Build a dictionary for storing the computation status.
+    """Build a dictionary for storing the computation status.
     In: guess: guess vector used to access the exact-addition property
     
     flagAddition: Boolean, True if the linear combination is accurate
@@ -24,7 +24,7 @@ def _getStatus(status,guess):
     runTime: run time in seconds
 
     Out: StatusUp: initialized and updated dictionary
-    '''
+    """
 
     statusUp ={"flagAddition":guess[0].hasExactAddition,
                "outerIter":0, "quadrature":0,
@@ -43,7 +43,7 @@ def _getStatus(status,guess):
     return statusUp
 
 def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor):
-    '''Calculate k-th quadrature Qquad_k assuming `Amat` is Hermitian.
+    """Calculate k-th quadrature Qquad_k assuming `Amat` is Hermitian.
     
     For Hermitian matrix:
     Qquad_k=-0.25*w_k*r{exp(i*angle_k)G(z)Y+exp(-i*theta)G^dagger(z)Y}
@@ -71,7 +71,7 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor)
     
     This contourEllipseFactor is implemented in Polizzi's code.
     It is necessary for testing Fortran data.
-    '''
+    """
 
     b = guess_b # copy the guess so the original is not altered
     typeClass = b.__class__
@@ -103,14 +103,14 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor)
     return Qquad_k
 
 def updateQ(Q,im0,Qquad_k,k):
-    '''Add the k-th quadrature solution to the existing Q.
+    """Add the k-th quadrature solution to the existing Q.
     In: Q => Q vectors
         im0 => im0-th vector to be updated
         Qquad_k => k-th quadrature for the im0-th 
                 vector to be updated
         k => quadrature point
 
-    Out: Q => updated Q vectors'''
+    Out: Q => updated Q vectors"""
 
     typeClass = Qquad_k.__class__
     if k == 0:

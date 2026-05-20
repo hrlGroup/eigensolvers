@@ -55,12 +55,12 @@ class Test_feast(unittest.TestCase):
                 writeOut=False)
 
         with self.subTest("returnType"):
-            '''Check that the returned eigenvalues and eigenvectors have the correct types.'''
+            """Check that the returned eigenvalues and eigenvectors have the correct types."""
             self.assertIsInstance(evfeast, np.ndarray)
             self.assertIsInstance(uvfeast, list)
             self.assertIsInstance(uvfeast[0], NumpyVector)
         with self.subTest("eigenvalue"):
-            '''Check that the calculated eigenvalues are accurate enough.'''
+            """Check that the calculated eigenvalues are accurate enough."""
             with self.subTest("All contour eigenvalues"):
                 contour_ev = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
                 ncontour_ev = len(contour_ev)
@@ -70,7 +70,7 @@ class Test_feast(unittest.TestCase):
             with self.subTest("eigenvalue accuracy"):
                 contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
         with self.subTest("back-transform"):
-            '''Check the linear combination.'''
+            """Check the linear combination."""
             typeClass = uvfeast[0].__class__
             S = typeClass.overlapMatrix(uvfeast[:-1])
             assert len(uvfeast) > 1
@@ -87,12 +87,12 @@ class Test_feast(unittest.TestCase):
                         = f"{ovlp=} but it should be +-1")
                 np.testing.assert_allclose(uvfeast[m].array,ovlp*bases[m].array,atol=1e-5)
         with self.subTest("orthonormal"):
-            '''Check that the returned basis is orthogonal.'''
+            """Check that the returned basis is orthogonal."""
             typeClass = uvfeast[0].__class__
             S = typeClass.overlapMatrix(uvfeast)
             np.testing.assert_allclose(S,np.eye(S.shape[0]),atol=1e-5)
             with self.subTest("transformationMatrix"):
-                ''' XH@S@X = 1'''
+                """ XH@S@X = 1"""
                 typeClass = uvfeast[0].__class__
                 assert len(uvfeast) > 1
                 uS = lowdinOrthoMatrix(SmatFull,status)[1]
@@ -102,7 +102,7 @@ class Test_feast(unittest.TestCase):
                 mat = uSH.T.conj()@S@uSH
                 np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5)
         with self.subTest("eigenvalue"):
-            '''Check that the calculated eigenvalues are accurate enough.'''
+            """Check that the calculated eigenvalues are accurate enough."""
             with self.subTest("All contour eigenvalues"):
                 contour_ev = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
                 ncontour_ev = len(contour_ev)
@@ -119,7 +119,7 @@ class Test_feast(unittest.TestCase):
                     self.assertTrue((abs(target_value-closest_value)<= 1e-4),'Not accurate up to 1e-4')
 
     def test_eigenvector(self):
-        '''Check that the calculated eigenvectors are accurate enough.'''
+        """Check that the calculated eigenvectors are accurate enough."""
        
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
                 1e-12,40,writeOut=False)[0:2]

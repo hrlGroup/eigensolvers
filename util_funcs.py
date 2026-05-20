@@ -12,10 +12,10 @@ LINDEP_DEFAULT_VALUE = 1e-14 # Global variable
 
 # -----------------------------------------------------
 def trapezoidal(nc):
-    '''
+    """
     input: nc, user-defined number of quadrature points
     output: quadrature points and associated weights
-    '''
+    """
     points=np.zeros(nc)
     weights=np.zeros(nc)
     a=-1.0
@@ -75,9 +75,9 @@ def eigRegularized_list(Amat,B, Q, atol):
 # -----------------------------------------------------
 # Find the maximum residual inside the contour.
 def getRes(lest,x,resvecs,eps):
-    '''
+    """
     Calculate the maximum residual inside the contour subspace.
-    '''
+    """
     n,m0 = x.shape
     resnorms = np.zeros(m0)
 
@@ -111,11 +111,11 @@ def getRes(lest,x,resvecs,eps):
 
 # -----------------------------------------------------
 def select_within_range(in_arr, arr_min, arr_max):
-    '''
+    """
     Return elements of an array (in_arr) from the selected interval [arr_min, arr_max].
     out_arr: array with elements within the specified range
     rangeIdx: Indices of the elements in the original array
-    '''
+    """
     out_arr = []
     rangeIdx = []
     n = len(in_arr)
@@ -145,12 +145,12 @@ def nearest_degenerate(array, value):
     return idx, array[idx]
 # -----------------------------------------------------
 def quadraturePointsWeights(nc:int, quad:str, positiveHalf=True):
-    '''Return `nc` quadrature points and weights based on quadrature `quad`.
+    """Return `nc` quadrature points and weights based on quadrature `quad`.
     Currently supported: legendre, hermite, trapezoidal
      positiveHalf: True => return only points on the positive half circle
             This is fine for Hermitian problems.
             See  PRB 79, 115112 (2009); eqn. 4, 10
-    '''
+    """
 
     if quad == "legendre":
         gk,wk = special.roots_legendre(nc)
@@ -169,9 +169,9 @@ def quadraturePointsWeights(nc:int, quad:str, positiveHalf=True):
 # -----------------------------------------------------
 # _qr function is copied from pyscf
 def _qr(xs, dot, lindep= LINDEP_DEFAULT_VALUE):
-    '''QR decomposition for a list of vectors (for linearly independent vectors only).
+    """QR decomposition for a list of vectors (for linearly independent vectors only).
     xs = (r.T).dot(qs)
-    '''
+    """
     nvec = len(xs)
     dtype = xs[0].dtype
     qs = np.empty((nvec,xs[0].size), dtype=dtype)
@@ -207,7 +207,7 @@ def headerBot(method,yesBot=False):
         print("*"*nstars)
 
 def basisTransformation(bases: "List[AbstractVector]",coeffs: np.ndarray):
-    '''Transform a Krylov basis with eigenvector coefficients.
+    """Transform a Krylov basis with eigenvector coefficients.
 
     In: bases -> List of bases for combination
         coeffs -> coefficients used for the combination
@@ -215,7 +215,7 @@ def basisTransformation(bases: "List[AbstractVector]",coeffs: np.ndarray):
 
     Out: combBases -> combination results.
         Note that this MAY be a reference to `bases`.
-    '''
+    """
 
     typeClass = bases[0].__class__
     ndim = coeffs.shape
@@ -248,14 +248,14 @@ def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
 
 def eigenvalueResidual(ev:np.ndarray,reference:np.ndarray,
                        eigenvalueRange=None):
-    '''
+    """
     Eigenvalue residual calculation.
     Residual = [sum abs(reference-ev)]/[sum abs(ev)]
     for eigenvalues from the current and previous iterations.
 
     `eigenvalueRange`: list of eigenvalue minimum and maximum values
     If provided, only eigenvalues within the range are considered.
-    '''
+    """
 
     absDiff = 0.0
     sumEigenvalue = 0.0
@@ -290,11 +290,11 @@ def eigenvalueResidual(ev:np.ndarray,reference:np.ndarray,
 
 # -----------------------------------------------------
 def calculateTarget(eigenvalues, indx, tol=1e-14):
-    '''Calculate a target for the given eigenvalues.
+    """Calculate a target for the given eigenvalues.
     The eigenvalues are exact reference eigenvalues, and indx selects the
     target index.
     Check if the nearest eigenvalues are not degenerate
-    for tolerance, tol (default: 1e-14)'''
+    for tolerance, tol (default: 1e-14)"""
 
     ediff1 = eigenvalues[indx] - eigenvalues[indx-1] 
     ediff2 = eigenvalues[indx+1] - eigenvalues[indx] 
@@ -358,7 +358,7 @@ def lowdinOrthoMatrix(S,status):
     return status, uS
     
 def diagonalizeHamiltonian(X,Hmat,printObj=None):
-    '''Solve the eigenvalue problem for Hmat using transformation `X`.
+    """Solve the eigenvalue problem for Hmat using transformation `X`.
 
     In:
         X -> transformation matrix
@@ -369,7 +369,7 @@ def diagonalizeHamiltonian(X,Hmat,printObj=None):
          ev -> eigenvalues
          uv -> eigenvectors
     Additional: prints the matrix representation and eigenvalues in the
-    detailed output file ("iterations_lanczos.out", default).'''
+    detailed output file ("iterations_lanczos.out", default)."""
 
     if printObj is not None:
         printObj.writeFile("hamiltonian",Hmat,"beforeOrthogonalization")

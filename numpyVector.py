@@ -119,21 +119,21 @@ class NumpyVector(AbstractVector):
         np.savez(str(filename), **saveDict)
 
     def applyOp(self,other):
-        '''Apply rmatmul as other@self.array.'''
+        """Apply rmatmul as other@self.array."""
         return NumpyVector(other@self.array,self.options)
 
     def compress(self):
         return self
 
     def linearCombination(vectors,coeffs):
-        '''
+        """
         Returns the linear combination of n vectors [v1, v2, ..., vn]
         combArray = c1*v1 + c2*v2 + cn*vn 
         Useful for addition, subtraction: c1 = 1.0/-1.0, respectively
 
         In:: vectors == list of vectors
              coeffs == list of coefficients, [c1,c2,...,cn]
-        '''
+        """
         assert len(vectors) == len(coeffs)
         dtype = vectors[0].dtype
         combArray = np.zeros(len(vectors[0]),dtype=dtype)
@@ -142,7 +142,7 @@ class NumpyVector(AbstractVector):
         return NumpyVector(combArray,vectors[0].options)
 
     def orthogonalize_against_set(x, qs, lindep=LINDEP_DEFAULT_VALUE):
-        '''
+        """
         Orthogonalize a vector against the previously obtained set of
         orthogonalized vectors
         x (In): vector to be orthogonalized
@@ -151,7 +151,7 @@ class NumpyVector(AbstractVector):
                           Default value is LINDEP_DEFAULT_VALUE
                           See module abstractVector.py
         If no linearly independent vector is found with respect to qs, return None.
-        '''
+        """
         nv = len(qs)
         for i in range(nv):
             qsi = qs[i]
@@ -201,7 +201,7 @@ class NumpyVector(AbstractVector):
         return NumpyVector(wk,b.options)
 
     def matrixRepresentation(operator,vectors):
-        '''Calculate and return the matrix representation in the "vectors" space.'''
+        """Calculate and return the matrix representation in the "vectors" space."""
         m = len(vectors)
         dtype = vectors[0].dtype
         qtAq = np.zeros((m,m),dtype=dtype)
@@ -213,7 +213,7 @@ class NumpyVector(AbstractVector):
         return qtAq
 
     def overlapMatrix(vectors):
-        '''Calculate the overlap matrix of vectors.'''
+        """Calculate the overlap matrix of vectors."""
 
         m = len(vectors)
         dtype = vectors[0].dtype
@@ -226,11 +226,11 @@ class NumpyVector(AbstractVector):
         return Smat
     
     def extendMatrixRepresentation(operator,vectors,opMat):
-        '''Extend the existing operator matrix representation (opMat)
+        """Extend the existing operator matrix representation (opMat)
         with the elements of the newly added vector
         (last member of the "vectors" list)
 
-        out: Extended matrix representation (opMat)'''
+        out: Extended matrix representation (opMat)"""
 
         m = len(vectors)
         dtype = vectors[0].dtype
@@ -244,11 +244,11 @@ class NumpyVector(AbstractVector):
         return opMat
 
     def extendOverlapMatrix(vectors,overlap):
-        '''Extend the existing overlap matrix (overlap)
+        """Extend the existing overlap matrix (overlap)
         with the elements of the newly added vector
         (last member of the "vectors" list)
 
-        out: Extended overlap matrix (overlap)'''
+        out: Extended overlap matrix (overlap)"""
         
         m = len(vectors)
         dtype = vectors[0].dtype

@@ -87,7 +87,7 @@ class AbstractVector(ABC):
     
     @abstractmethod
     def applyOp(self,other):
-        '''Apply rmatmul as other@self.array.'''
+        """Apply rmatmul as other@self.array."""
         raise NotImplementedError
 
     @abstractmethod
@@ -98,14 +98,14 @@ class AbstractVector(ABC):
 
     @staticmethod
     def linearCombination(other,coeff):
-        '''
+        """
         Returns the linear combination of n vectors [v1, v2, ..., vn]
         combArray = c1*v1 + c2*v2 + cn*vn 
         Useful for addition, subtraction: c1 = 1.0/-1.0, respectively
 
         In:: other == list of vectors
              coeff == list of coefficients, [c1,c2,...,cn]
-        '''
+        """
         raise NotImplementedError
 
     @staticmethod
@@ -114,19 +114,19 @@ class AbstractVector(ABC):
 
     @staticmethod
     def orthogonalize_against_set(x,xs,lindep=LINDEP_DEFAULT_VALUE):
-        '''
+        """
         Orthogonalize a vector against the previously obtained set of
         orthogonalized vectors
         x (In): vector to be orthogonalized
         xs (In): set of orthogonalized vectors
         lindep (optional): parameter used to detect linear dependency
         If no linearly independent vector is found with respect to xs, return None.
-        '''
+        """
         raise NotImplementedError
     
     @staticmethod
     def solve(H, b, sigma, x0=None, opType="her",reverseGF=False):
-        '''Solve the linear equation (sigma*I-H) x = b.
+        """Solve the linear equation (sigma*I-H) x = b.
 
         :param opType: Operator type:
             "gen" for generic operator, "sym" for (complex) symmetric, "her" for Hermitian,
@@ -135,35 +135,35 @@ class AbstractVector(ABC):
          param reverseGF:
              False for Green's function (sigma-H)
              True for reverse Green's function (H-sigma)
-        '''
+        """
         raise NotImplementedError
 
     @staticmethod
     def matrixRepresentation(operator,vectors):
-        '''Calculate and return the matrix representation in the "vectors" space of a Hermitian operator.'''
+        """Calculate and return the matrix representation in the "vectors" space of a Hermitian operator."""
         raise NotImplementedError
     
     @staticmethod
     def overlapMatrix(vectors):
-        '''Calculate the overlap matrix of vectors.'''
+        """Calculate the overlap matrix of vectors."""
         raise NotImplementedError
     
     @staticmethod
     def extendMatrixRepresentation(operator,vectors,opMat):
-        '''Extend the existing operator matrix representation (opMat)
+        """Extend the existing operator matrix representation (opMat)
         with the elements of the newly added vector
         (last member of the "vectors" list)
 
-        out: Extended matrix representation (opMat)'''
+        out: Extended matrix representation (opMat)"""
 
         raise NotImplementedError
     
     @staticmethod
     def extendOverlapMatrix(vectors,overlap):
-        '''Extend the existing overlap matrix (overlap)
+        """Extend the existing overlap matrix (overlap)
         with the elements of the newly added vector
         (last member of the "vectors" list)
 
-        out: Extended overlap matrix (overlap)'''
+        out: Extended overlap matrix (overlap)"""
         
         raise NotImplementedError

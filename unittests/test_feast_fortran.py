@@ -55,14 +55,14 @@ class Test_feast_fortran(unittest.TestCase):
         self.uvEigh = uvEigh
     
     def test_legendre_points(self):
-        ''' Checks distribution points with the help of manual order '''
+        """ Checks distribution points with the help of manual order """
         fgk,fwk = read_fortranData()[2:4]
         gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)
         np.testing.assert_allclose(fgk,gk[self.order],rtol=1e-5,atol=0)
         np.testing.assert_allclose(fwk,wk[self.order],rtol=1e-5,atol=0)
 
     def test_theta(self):
-        ''' Checks angle for quadrature, theta '''
+        """ Checks angle for quadrature, theta """
         ftheta= read_fortranData()[4]
         gk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)[0]
         pi = np.pi
@@ -72,7 +72,7 @@ class Test_feast_fortran(unittest.TestCase):
         np.testing.assert_allclose(ftheta,theta[self.order],rtol=1e-5,atol=0)
    
     def test_zne(self):
-        ''' Checks quadrature points, zne '''
+        """ Checks quadrature points, zne """
         fzne= read_fortranData()[5]
         r = abs(self.rmax-self.rmin)*0.5
         gk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)[0]
@@ -84,7 +84,7 @@ class Test_feast_fortran(unittest.TestCase):
         np.testing.assert_allclose(fzne,zne[self.order],rtol=1e-5,atol=0)
 
     def test_Qe(self):
-        '''Check linear solutions, Qe.'''
+        """Check linear solutions, Qe."""
         typeClass = self.guess[0].__class__
         r = abs(self.rmax-self.rmin)*0.5
         gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)
@@ -104,7 +104,7 @@ class Test_feast_fortran(unittest.TestCase):
             np.testing.assert_allclose(Qe,fQe,rtol=1e-5,atol=0)
 
     def test_Q(self):
-        ''' Checks integrated solutions, Q '''
+        """ Checks integrated solutions, Q """
         typeClass = self.guess[0].__class__
         r = abs(self.rmax-self.rmin)*0.5
         gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)

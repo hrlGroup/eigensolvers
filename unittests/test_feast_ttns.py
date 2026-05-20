@@ -116,13 +116,13 @@ class Test_feast_ttns(unittest.TestCase):
         typeClass = uvfeast[0].__class__
         
         with self.subTest("orthogonalization"):
-            '''Check that the returned basis is orthogonal.'''
+            """Check that the returned basis is orthogonal."""
             S = typeClass.overlapMatrix(uvfeast)
             np.testing.assert_allclose(S,np.eye(S.shape[0]),atol=1e-5)
 
 
         with self.subTest("transformationMatrix"):
-            ''' XH@S@X = 1'''
+            """ XH@S@X = 1"""
             S = typeClass.overlapMatrix(uvfeast)
             assert len(uvfeast) > 1
             SmatFull = typeClass.overlapMatrix(uvfeast)
@@ -134,13 +134,13 @@ class Test_feast_ttns(unittest.TestCase):
             np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5)
 
         with self.subTest("returnType"):
-            '''Check that the returned eigenvalues and eigenvectors have the correct types.'''
+            """Check that the returned eigenvalues and eigenvectors have the correct types."""
             self.assertIsInstance(evfeast, np.ndarray)
             self.assertIsInstance(uvfeast, list)
             self.assertIsInstance(uvfeast[0], TTNSVector)
 
         with self.subTest("eigenvalue"):
-            '''Check accuracy of the calculated eigenvalues.'''
+            """Check accuracy of the calculated eigenvalues."""
 
             # All contour eigenvalues.
             contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
@@ -156,7 +156,7 @@ class Test_feast_ttns(unittest.TestCase):
                 self.assertTrue((abs(target_value-closest_value)<= 1e-4),'Not accurate up to 1e-4')
     
         with self.subTest("eigenvector"):
-            '''Check accuracy of the calculated eigenvectors.'''
+            """Check accuracy of the calculated eigenvectors."""
 
             contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
             for i in range(len(contour_evs)):

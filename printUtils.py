@@ -7,7 +7,7 @@ from ttnsVector import TTNSVector
 
 # ****************************************************************************
 def convert(arr,eShift=0.0,unit='au'):
-    '''Convert an ndarray (energy or matrix) with an eShift and unit conversion.'''
+    """Convert an ndarray (energy or matrix) with an eShift and unit conversion."""
 
     arrShifted = None
     if unit == 'au':

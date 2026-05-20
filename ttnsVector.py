@@ -219,16 +219,16 @@ class TTNSVector(AbstractVector):
 
     @staticmethod
     def overlapMatrix(vectors:List[TTNSVector]):
-        '''Calculate the overlap matrix of tensor network states.'''
+        """Calculate the overlap matrix of tensor network states."""
         return _overlapMatrix([v.ttns for v in vectors])
     
     @staticmethod
     def extendMatrixRepresentation(operator, vectors:List[TTNSVector],opMat:np.ndarray):
-        '''Extend the existing operator matrix representation (opMat)
+        """Extend the existing operator matrix representation (opMat)
         with the elements of the newly added vector
         (last member of the "vectors" list)
 
-        out: Extended matrix representation (opMat)'''
+        out: Extended matrix representation (opMat)"""
 
         dtype = np.result_type(*[v.dtype for v in vectors])
         m = len(vectors)
@@ -243,11 +243,11 @@ class TTNSVector(AbstractVector):
  
     @staticmethod
     def extendOverlapMatrix(vectors:List[TTNSVector],overlap:np.ndarray):
-        '''Extend the existing overlap matrix (overlap)
+        """Extend the existing overlap matrix (overlap)
         with the elements of the newly added vector
         (last member of the "vectors" list)
 
-        out: Extended overlap matrix (overlap)'''
+        out: Extended overlap matrix (overlap)"""
         
         dtype = np.result_type(*[v.dtype for v in vectors])
         m = len(vectors)

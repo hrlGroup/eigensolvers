@@ -96,22 +96,22 @@ def generateSubspace(Hop, vec:List[AbstractVector],sigma,eConv):
     return out, nonzero
 
 def _convergence(value, ref):
-    '''Compute the convergence quantity.
-    Defined as relative error.'''
+    """Compute the convergence quantity.
+    Defined as relative error."""
     
     check_ev = abs(value - ref)/max(abs(value), 1e-14)
     return check_ev
 
 
 def checkConvergence(ev,eConv,status,printObj=None):
-    '''Check eigenvalue convergence.
+    """Check eigenvalue convergence.
     
     In: ev -> eigenvalues, sorted based on `pick`
         status -> parameter dictionary
         printObj (optional): print object
     
     Out: status (dict: updated isConverged, ref)
-         '''
+         """
     
     isConverged = False
     nBlock = status["nBlock"]
@@ -134,7 +134,7 @@ def checkConvergence(ev,eConv,status,printObj=None):
     return status
  
 def checkFitting(evNew, ev, checkFitTol, status):
-    '''Check the eigenvalue after fitting
+    """Check the eigenvalue after fitting
     (at the end of Lanczos iteration)
     In : evNew -> energy after fitting the sum of states
          ev -> energy of state before fitting
@@ -142,7 +142,7 @@ def checkFitting(evNew, ev, checkFitTol, status):
          status -> parameter dictionary
     
     Out: properFit -> (bool: True for accurate linear combination)
-    '''
+    """
     properFit = True
     
     if status["flagAddition"]:
@@ -185,14 +185,14 @@ def terminateRestart(blockEnergies,eConv,status,num=3):
 
 
 def analyzeStatus(status,maxit,L):
-    '''Combine iteration and convergence status into a single decision
+    """Combine iteration and convergence status into a single decision
     to continue an iteration or not.
 
     In: status -> parameter dictionary
         maxit -> maximum Lanczos iterations
         L -> Krylov dimension
         
-    Out: decision to continue iteration'''
+    Out: decision to continue iteration"""
 
     isConverged = status["isConverged"]
     it = status["outerIter"]
