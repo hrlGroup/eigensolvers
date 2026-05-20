@@ -222,7 +222,7 @@ class LanczosPrintUtils:
             line += "\tKrylov iteration: "+str(args[0]["innerIter"])
             line += "\tCumulative Krylov iteration: "+str(args[0]["cumIter"])+"\n"
             outfile.write(line)
-            if self.typeClass == TTNSVector:print(line) # for sweepOutput
+            if self.typeClass is TTNSVector:print(line) # for sweepOutput
     # ...................... MAXIMUM BOND DIMENSION ......................
         elif label == "KSmaxD":
             line = "Maximum bond dimensions of Krylov vectors"
