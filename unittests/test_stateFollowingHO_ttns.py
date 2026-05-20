@@ -1,6 +1,7 @@
 import unittest
 import sys
 import copy
+from pathlib import Path
 import numpy as np
 from scipy import linalg as la
 from ttnsVector import TTNSVector
@@ -28,7 +29,7 @@ class Test_stateFollowing(unittest.TestCase):
         convTol = 1e-5
         N_STATES = 6 # also sets eigenvalue index below. sigma is 
 
-        fOp = 'pyr4+.op'
+        fOp = Path(__file__).with_name("pyr4+.op")
         Hop = mctdh_stuff.translateOperatorFile(fOp, verbose=False)
 
         FAC = 2

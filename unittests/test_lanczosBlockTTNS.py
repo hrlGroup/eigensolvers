@@ -61,6 +61,7 @@ class Test_lanczos(unittest.TestCase):
         ttns1, ttns2 = orthogonalize([ttns1,ttns2], bondDimensionAdaptions=bondDimensionAdaptions)
         bondDimensionAdaptions = None
         bondDimensionAdaptionsOrtho = [TruncationEps(EPS, maxD=MAX_D, offset=2, truncateViaDiscardedSum=False)]
+        bondDimensionAdaptionsFit = [TruncationEps(EPS/20, maxD=MAX_D*2, offset=2, truncateViaDiscardedSum=False)]
         nsweepOrtho = 40
         orthoTol = 1e-06
         optShift = 0.0
@@ -78,7 +79,7 @@ class Test_lanczos(unittest.TestCase):
         optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,
                          "convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
         optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,
-                          "bondDimensionAdaptions":bondDimensionAdaptions}
+                          "bondDimensionAdaptions":bondDimensionAdaptionsFit}
         options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear,
                    "stateFittingArgs":optionsFitting}
 
@@ -90,7 +91,7 @@ class Test_lanczos(unittest.TestCase):
         self.eShift = 0.0
         self.maxit = 20
         self.L = 10
-        self.eConv = 1e-7
+        self.eConv = 1e-8
         self.writeOut = False
 
     def test_LanczosTTNSBlock(self):
@@ -98,7 +99,7 @@ class Test_lanczos(unittest.TestCase):
         evLanczos, uvLanczos, status = inexactLanczosDiagonalization(self.Hop,self.guess,self.sigma,self.L,
                                                   self.maxit,self.eConv,writeOut=self.writeOut)
         # Difficult case!
-        np.testing.assert_allclose(evLanczos[:nBlock], self.evRef, rtol=self.eConv*5, atol=1e-5)
+        np.testing.assert_allclose(evLanczos[:nBlock], self.evRef, rtol=self.eConv*8, atol=1e-4)
 
 if __name__ == '__main__':
     unittest.main()

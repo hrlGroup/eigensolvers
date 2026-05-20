@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 import math
+from pathlib import Path
 from magic import ipsh
 from numpyVector import NumpyVector
 from util_funcs import quadraturePointsWeights
@@ -9,11 +10,11 @@ from feast  import calculateQuadrature, updateQ
 # This tests our FEAST code (partial comparison) 
 # with outputs of FEAST Fortran code (by Eric Polizzi)
 
-filename = "data_fortranCode.out"
+filename = Path(__file__).with_name("data_fortranCode.out")
 
 def read_fortranData(k=0):
     amat = np.loadtxt(filename, dtype = float,skiprows =1, max_rows=4)
-    guess = np.loadtxt(filename,dtype =complex,skiprows=6, max_rows=3)
+    guess = np.loadtxt(filename,dtype =complex,skiprows=7, max_rows=3)
     xe = np.loadtxt(filename,dtype =float,skiprows=12, max_rows=8)
     we = np.loadtxt(filename,dtype =float,skiprows=22, max_rows=8)
     theta = np.loadtxt(filename,dtype =float,skiprows=32, max_rows=8)
@@ -129,4 +130,3 @@ class Test_feast_fortran(unittest.TestCase):
         
 if __name__ == '__main__':
     unittest.main()
-
