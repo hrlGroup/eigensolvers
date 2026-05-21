@@ -16,16 +16,15 @@ def trapezoidal(nc):
     input: nc, user-defined number of quadrature points
     output: quadrature points and associated weights
     """
-    a=-1.0
-    b=1.0
     if nc < 2:
         raise ValueError("Trapezoidal quadrature requires at least two points.")
 
-    points=np.linspace(a,b,nc)
-    dx=(b-a)/(nc-1)
-    weights=np.full(nc,dx)
-    weights[0] *= 0.5
-    weights[-1] *= 0.5
+    # FEAST uses the midpoint trapezoidal rule for contour angles:
+    # theta_k = pi - pi/(2*nc) - pi*k/nc.
+    # With theta = pi/2 * (1 - g), this corresponds to midpoint
+    # quadrature on [-1, 1].
+    points=np.linspace(-1.0 + 1.0/nc,1.0 - 1.0/nc,nc)
+    weights=np.full(nc,2.0/nc)
     return points,weights
 
 # -----------------------------------------------------

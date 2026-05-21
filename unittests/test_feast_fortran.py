@@ -62,11 +62,15 @@ class Test_feast_fortran(unittest.TestCase):
         np.testing.assert_allclose(fwk,wk[self.order],rtol=1e-5,atol=0)
 
     def test_trapezoidal_points(self):
-        """Check the trapezoidal rule on [-1, 1]."""
+        """Check the FEAST midpoint trapezoidal rule on [-1, 1]."""
         gk,wk = quadraturePointsWeights(5,"trapezoidal",positiveHalf=False)
-        np.testing.assert_allclose(gk,[-1.0,-0.5,0.0,0.5,1.0],rtol=0,atol=0)
-        np.testing.assert_allclose(wk,[0.25,0.5,0.5,0.5,0.25],rtol=0,atol=0)
+        np.testing.assert_allclose(gk,[-0.8,-0.4,0.0,0.4,0.8],rtol=0,atol=1e-15)
+        np.testing.assert_allclose(wk,[0.4,0.4,0.4,0.4,0.4],rtol=0,atol=0)
         self.assertAlmostEqual(np.sum(wk),2.0)
+
+        theta = -(np.pi*0.5)*(gk-1)
+        feast_theta = np.array([np.pi-(np.pi/5)/2.0-(np.pi/5)*e for e in range(5)])
+        np.testing.assert_allclose(theta,feast_theta,rtol=0,atol=1e-15)
 
     def test_theta(self):
         """ Checks angle for quadrature, theta """
