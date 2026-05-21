@@ -16,15 +16,17 @@ def trapezoidal(nc):
     input: nc, user-defined number of quadrature points
     output: quadrature points and associated weights
     """
-    points=np.zeros(nc)
-    weights=np.zeros(nc)
     a=-1.0
     b=1.0
-    dx=(b-a)/(nc)
-    for i in range(nc):
-        points[i]=a+dx*(i-1)
-        weights[i]=(b-a)/(nc+1)
-    return (points,weights)
+    if nc < 2:
+        raise ValueError("Trapezoidal quadrature requires at least two points.")
+
+    points=np.linspace(a,b,nc)
+    dx=(b-a)/(nc-1)
+    weights=np.full(nc,dx)
+    weights[0] *= 0.5
+    weights[-1] *= 0.5
+    return points,weights
 
 # -----------------------------------------------------
 # This function is copied from cross_filterdiag.py
