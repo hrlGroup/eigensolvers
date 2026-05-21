@@ -124,7 +124,7 @@ def updateQ(Q,im0,Qquad_k,k):
 # Part 1: main FEAST function for contour integral
 # ------------------------------
 def feastDiagonalization(A, Y: list[AbstractVector],
-                         nc, quad, eMin, eMax, eConv, maxit, contourEllipseFactor=1.0,
+                         n_quad, quad, eMin, eMax, eConv, maxit, contourEllipseFactor=1.0,
                          writeOut=True, eShift=0.0, 
                          convertUnit="au", outFileName=None, summaryFileName=None):
     """FEAST diagonalization of A.
@@ -138,7 +138,7 @@ def feastDiagonalization(A, Y: list[AbstractVector],
          Note: Must be Hermitian. 
          Otherwise, `calculateQuadrature` needs to be adapted.
     Y => Initial guess of vectors.
-    nc => number of quadrature points
+    n_quad => number of quadrature points
     quad => quadrature points distribution
             Available options - "legendre", "hermite", "trapezoidal"
             Note: Hermite will lead to points outside the [eMin, eMax] 
@@ -174,11 +174,11 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     
 
     # Numerical quadrature points.
-    gk, wk = quadraturePointsWeights(nc, quad, positiveHalf=True)
+    gk, wk = quadraturePointsWeights(n_quad, quad, positiveHalf=True)
     pi = np.pi
     
     status = _getStatus(None,Y)
-    printObj = FeastPrintUtils(Y, nc, quad, eMin, eMax, eConv, maxit, 
+    printObj = FeastPrintUtils(Y, n_quad, quad, eMin, eMax, eConv, maxit, 
             writeOut, eShift, convertUnit, status, 
             outFileName, summaryFileName)
 
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     # Specify FEAST parameters
     ev_min = 160.0
     ev_max = 166.0
-    nc    = 8          # number of contour points
+    n_quad = 8         # number of quadrature points
     quad  = "legendre" # Choice of quadrature points # available options, legendre, Hermite (, trapezoidal !)
     m0    = 6         # subspace dimension
     eps   = 1e-6      # residual convergence tolerance
@@ -280,5 +280,5 @@ if __name__ == "__main__":
 
     contour_ev = select_within_range(ev, ev_min, ev_max)[0]
     print("--- actual eigenvalues",contour_ev,"---\n")
-    efeast,ufeast =  feastDiagonalization(linOp,Y,nc,quad,ev_min,ev_max,eps,maxit)[0:2]
+    efeast,ufeast =  feastDiagonalization(linOp,Y,n_quad,quad,ev_min,ev_max,eps,maxit)[0:2]
     print("\n---feast eigenvalues",efeast,"---")

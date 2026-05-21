@@ -275,7 +275,7 @@ class LanczosPrintUtils:
 # ****************************************************************************
 class FeastPrintUtils:
     """Print helper for file headers, footers, and iteration output."""
-    def __init__(self,guessVector,nc,quad,rmin,rmax,eConv,maxit,writeOut,
+    def __init__(self,guessVector,n_quad,quad,rmin,rmax,eConv,maxit,writeOut,
             eShift,convertUnit,status,outFileName=None, summaryFileName=None):
         
         if outFileName is None:
@@ -286,7 +286,7 @@ class FeastPrintUtils:
         self.typeClass = guessVector.__class__
         self.subspace = len(guessVector)
         self.options = guessVector[0].options
-        self.nc = nc
+        self.n_quad = n_quad
         self.quad = quad
         self.rmin = rmin
         self.rmax = rmax
@@ -335,7 +335,7 @@ class FeastPrintUtils:
         formatStyle = "{:12} {:>14} :: {:20}"
         lines += formatStyle.format("m0",self.subspace,\
                 "Subspace dimension")+"\n"
-        lines += formatStyle.format("nc",self.nc,"Number of quadrature points")\
+        lines += formatStyle.format("n_quad",self.n_quad,"Number of quadrature points")\
                 +"\n"
         lines += formatStyle.format("quad",self.quad,\
                 "Quadrature distribution")+"\n"

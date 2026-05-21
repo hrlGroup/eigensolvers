@@ -31,7 +31,7 @@ class Test_feast_fortran(unittest.TestCase):
         n = A.shape[0]
         self.rmin = 3.0
         self.rmax = 5.0
-        self.nc = 8            # number of contour points
+        self.n_quad = 8        # number of quadrature points
         self.quad = "legendre" # Choice of quadrature points
         m0 = 3                 # subspace dimension
         self.eConv = 1e-12      # residual convergence tolerance
@@ -57,7 +57,7 @@ class Test_feast_fortran(unittest.TestCase):
     def test_legendre_points(self):
         """ Checks distribution points with the help of manual order """
         fgk,fwk = read_fortranData()[2:4]
-        gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)
+        gk,wk = quadraturePointsWeights(self.n_quad,self.quad,positiveHalf=False)
         np.testing.assert_allclose(fgk,gk[self.order],rtol=1e-5,atol=0)
         np.testing.assert_allclose(fwk,wk[self.order],rtol=1e-5,atol=0)
 
@@ -75,10 +75,10 @@ class Test_feast_fortran(unittest.TestCase):
     def test_theta(self):
         """ Checks angle for quadrature, theta """
         ftheta= read_fortranData()[4]
-        gk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)[0]
+        gk = quadraturePointsWeights(self.n_quad,self.quad,positiveHalf=False)[0]
         pi = np.pi
-        theta = np.empty((self.nc))
-        for k in range(self.nc):
+        theta = np.empty((self.n_quad))
+        for k in range(self.n_quad):
             theta[k] = -(pi*0.5)*(gk[k]-1)
         np.testing.assert_allclose(ftheta,theta[self.order],rtol=1e-5,atol=0)
    
@@ -86,10 +86,10 @@ class Test_feast_fortran(unittest.TestCase):
         """ Checks quadrature points, zne """
         fzne= read_fortranData()[5]
         r = abs(self.rmax-self.rmin)*0.5
-        gk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)[0]
+        gk = quadraturePointsWeights(self.n_quad,self.quad,positiveHalf=False)[0]
         pi = np.pi
-        zne = np.empty((self.nc),dtype=complex)
-        for k in range(self.nc):
+        zne = np.empty((self.n_quad),dtype=complex)
+        for k in range(self.n_quad):
             theta = -(pi*0.5)*(gk[k]-1)
             zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta)+r*self.efactor*1.0j*math.sin(theta)
         np.testing.assert_allclose(fzne,zne[self.order],rtol=1e-5,atol=0)
@@ -98,17 +98,17 @@ class Test_feast_fortran(unittest.TestCase):
         """Check linear solutions, Qe."""
         typeClass = self.guess[0].__class__
         r = abs(self.rmax-self.rmin)*0.5
-        gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)
+        gk,wk = quadraturePointsWeights(self.n_quad,self.quad,positiveHalf=False)
         pi = np.pi
-        zne = np.empty((self.nc),dtype=complex)
+        zne = np.empty((self.n_quad),dtype=complex)
         n,m = len(self.guess),len(self.guess[0].array)
         Qe = np.empty((n,m),dtype=complex)
-        for k in range(self.nc):
+        for k in range(self.n_quad):
             theta = -(pi*0.5)*(gk[k]-1)
             zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta)+r*self.efactor*1.0j*math.sin(theta)
         
         zne = zne[self.order]    
-        for k in range(self.nc):
+        for k in range(self.n_quad):
             fQe = read_fortranData(k)[6]
             for im0 in range(len(self.guess)):
                 Qe[im0] = typeClass.solve(self.mat,self.guess[im0],zne[k]).array
@@ -118,18 +118,18 @@ class Test_feast_fortran(unittest.TestCase):
         """ Checks integrated solutions, Q """
         typeClass = self.guess[0].__class__
         r = abs(self.rmax-self.rmin)*0.5
-        gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)
+        gk,wk = quadraturePointsWeights(self.n_quad,self.quad,positiveHalf=False)
         pi = np.pi
-        theta = np.empty((self.nc))
-        zne = np.empty((self.nc),dtype=complex)
+        theta = np.empty((self.n_quad))
+        zne = np.empty((self.n_quad),dtype=complex)
         n,m = len(self.guess),len(self.guess[0].array)
         Q = [np.nan for it in range(n)]
-        for k in range(self.nc):
+        for k in range(self.n_quad):
             theta[k] = -(pi*0.5)*(gk[k]-1)
         
         theta = theta[self.order]
         wk = wk[self.order]
-        for k in range(self.nc):
+        for k in range(self.n_quad):
             fQ = read_fortranData(k)[7]
             zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta[k])+r*self.efactor*1.0j*math.sin(theta[k])
             for im0 in range(len(self.guess)):

@@ -22,7 +22,7 @@ class Test_feast(unittest.TestCase):
         # Specify FEAST parameters
         self.rmin = 160.0
         self.rmax = 166.0
-        self.nc = 8            # number of contour points
+        self.n_quad = 8        # number of quadrature points
         self.quad = "legendre" # Choice of quadrature points
         m0 = 6                 # subspace dimension
         self.eConv = 1e-10      # residual convergence tolerance
@@ -51,7 +51,7 @@ class Test_feast(unittest.TestCase):
 
     def test_feast(self):
         evfeast, uvfeast, status = feastDiagonalization(self.mat, self.guess, 
-                self.nc, self.quad, self.rmin, self.rmax,self.eConv, self.maxit,
+                self.n_quad, self.quad, self.rmin, self.rmax,self.eConv, self.maxit,
                 writeOut=False)
 
         with self.subTest("returnType"):
@@ -121,7 +121,7 @@ class Test_feast(unittest.TestCase):
     def test_eigenvector(self):
         """Check that the calculated eigenvectors are accurate enough."""
        
-        evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
+        evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.n_quad,self.quad,self.rmin,self.rmax,
                 1e-12,40,writeOut=False)[0:2]
         
         contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]

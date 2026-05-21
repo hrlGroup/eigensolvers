@@ -75,7 +75,7 @@ class Test_feast_ttns(unittest.TestCase):
         self.rmin = energies[3]*1.001
         self.rmax = energies[5]*1.001
         self.maxit = 15
-        self.nc = 6  
+        self.n_quad = 6
         self.eConv = 1e-6
         self.quad = "legendre"
         self.writeOut = False
@@ -110,7 +110,7 @@ class Test_feast_ttns(unittest.TestCase):
     
     def test_feast_ttns(self):
         evfeast, uvfeast, status = feastDiagonalization(self.mat,self.guess,
-                self.nc,self.quad,self.rmin,self.rmax,self.eConv,self.maxit,
+                self.n_quad,self.quad,self.rmin,self.rmax,self.eConv,self.maxit,
                 writeOut=self.writeOut)
 
         typeClass = uvfeast[0].__class__

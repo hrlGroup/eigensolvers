@@ -11,20 +11,20 @@ LINDEP_DEFAULT_VALUE = 1e-14 # Global variable
 #LINDEP_DEFAULT_VALUE = 1e-9 # Global variable
 
 # -----------------------------------------------------
-def trapezoidal(nc):
+def trapezoidal(n_quad):
     """
-    input: nc, user-defined number of quadrature points
+    input: n_quad, user-defined number of quadrature points
     output: quadrature points and associated weights
     """
-    if nc < 2:
+    if n_quad < 2:
         raise ValueError("Trapezoidal quadrature requires at least two points.")
 
     # FEAST uses the midpoint trapezoidal rule for contour angles:
-    # theta_k = pi - pi/(2*nc) - pi*k/nc.
+    # theta_k = pi - pi/(2*n_quad) - pi*k/n_quad.
     # With theta = pi/2 * (1 - g), this corresponds to midpoint
     # quadrature on [-1, 1].
-    points=np.linspace(-1.0 + 1.0/nc,1.0 - 1.0/nc,nc)
-    weights=np.full(nc,2.0/nc)
+    points=np.linspace(-1.0 + 1.0/n_quad,1.0 - 1.0/n_quad,n_quad)
+    weights=np.full(n_quad,2.0/n_quad)
     return points,weights
 
 # -----------------------------------------------------
@@ -145,8 +145,8 @@ def nearest_degenerate(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx, array[idx]
 # -----------------------------------------------------
-def quadraturePointsWeights(nc:int, quad:str, positiveHalf=True):
-    """Return `nc` quadrature points and weights based on quadrature `quad`.
+def quadraturePointsWeights(n_quad:int, quad:str, positiveHalf=True):
+    """Return `n_quad` quadrature points and weights based on quadrature `quad`.
     Currently supported: legendre, hermite, trapezoidal
      positiveHalf: True => return only points on the positive half circle
             This is fine for Hermitian problems.
@@ -154,11 +154,11 @@ def quadraturePointsWeights(nc:int, quad:str, positiveHalf=True):
     """
 
     if quad == "legendre":
-        gk,wk = special.roots_legendre(nc)
+        gk,wk = special.roots_legendre(n_quad)
     elif quad == "hermite":
-        gk,wk = special.roots_hermite(nc)
+        gk,wk = special.roots_hermite(n_quad)
     elif quad == "trapezoidal":
-        gk,wk = trapezoidal(nc)
+        gk,wk = trapezoidal(n_quad)
 
     if positiveHalf:
         idx = gk > 0.0
