@@ -141,6 +141,8 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     nc => number of quadrature points
     quad => quadrature points distribution
             Available options - "legendre", "hermite", "trapezoidal"
+            Note: Hermite will lead to points outside the [eMin, eMax] 
+                  interval.
     eMin => eigenvalue lower limit
     eMax => eigenvalue upper limit
     eConv => eigenvalue residual convergence tolerance
