@@ -137,6 +137,26 @@ class Test_feast(unittest.TestCase):
             feastVector = feastVector * ovlp
             np.testing.assert_allclose(exactVector,feastVector,rtol=1e-2,atol=1e-2)
 
+    def test_subspace_construction_options(self):
+        """Check the three FEAST subspace construction options."""
+        ev_fit, uv_fit, status_fit = feastDiagonalization(
+                self.mat,self.guess,self.n_quad,self.quad,self.rmin,self.rmax,
+                self.eConv,1,writeOut=False,subspaceConstruction=1)
+        ev_double, uv_double, status_double = feastDiagonalization(
+                self.mat,self.guess,self.n_quad,self.quad,self.rmin,self.rmax,
+                self.eConv,1,writeOut=False,subspaceConstruction=2)
+        ev_expanded, uv_expanded, status_expanded = feastDiagonalization(
+                self.mat,self.guess,self.n_quad,self.quad,self.rmin,self.rmax,
+                self.eConv,1,writeOut=False,subspaceConstruction=3)
+
+        self.assertEqual(status_fit["subspaceConstruction"],"fitted_sums")
+        self.assertEqual(status_double["subspaceConstruction"],"double_sums")
+        self.assertEqual(status_expanded["subspaceConstruction"],"expanded_space")
+        np.testing.assert_allclose(ev_fit,ev_double,rtol=1e-7,atol=1e-7)
+        self.assertEqual(len(ev_fit),len(uv_fit))
+        self.assertEqual(len(ev_double),len(uv_double))
+        self.assertEqual(len(ev_expanded),len(uv_expanded))
+        self.assertGreater(len(ev_expanded),len(ev_fit))
 
 if __name__ == '__main__':
     unittest.main()

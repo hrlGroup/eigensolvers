@@ -276,7 +276,8 @@ class LanczosPrintUtils:
 class FeastPrintUtils:
     """Print helper for file headers, footers, and iteration output."""
     def __init__(self,guessVector,n_quad,quad,rmin,rmax,eConv,maxit,writeOut,
-            eShift,convertUnit,status,outFileName=None, summaryFileName=None):
+            eShift,convertUnit,status,subspaceConstruction,outFileName=None,
+            summaryFileName=None):
         
         if outFileName is None:
             outFileName = "iterations_feast.out"
@@ -288,6 +289,7 @@ class FeastPrintUtils:
         self.options = guessVector[0].options
         self.n_quad = n_quad
         self.quad = quad
+        self.subspaceConstruction = subspaceConstruction
         self.rmin = rmin
         self.rmax = rmax
         self.eConv = eConv
@@ -339,6 +341,8 @@ class FeastPrintUtils:
                 +"\n"
         lines += formatStyle.format("quad",self.quad,\
                 "Quadrature distribution")+"\n"
+        lines += formatStyle.format("subspace",self.subspaceConstruction,\
+                "Subspace construction")+"\n"
         minTarget = convert(self.rmin,self.eShift,self.convertUnit)
         lines += formatStyle.format("emin",minTarget,\
                 "Minimum target excitation energy")+"\n"
