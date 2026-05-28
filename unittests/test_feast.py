@@ -1,6 +1,8 @@
 import unittest
 import sys
 import copy
+import tempfile
+from pathlib import Path
 from feast  import *
 from magic import ipsh
 import numpy as np
@@ -196,6 +198,29 @@ class Test_feast(unittest.TestCase):
         self.assertEqual(len(ev_double),len(uv_double))
         self.assertEqual(len(ev_expanded),len(uv_expanded))
         self.assertGreater(len(ev_expanded),len(ev_fit))
+
+    def test_save_all_vectors(self):
+        """Check saving FEAST vectors with eigenvalues and coefficients."""
+        with tempfile.TemporaryDirectory() as saveDir:
+            evfeast, uvfeast, status = feastDiagonalization(
+                    self.mat,copy.deepcopy(self.guess),
+                    self.n_quad,self.quad,self.rmin,self.rmax,
+                    self.eConv,1,writeOut=False,
+                    saveAllVectors=True,saveDir=saveDir)
+
+            files = sorted(Path(saveDir).glob("vector_000_*.npz"))
+            self.assertEqual(len(files),len(self.guess))
+            with np.load(files[0],allow_pickle=True) as data:
+                self.assertIn("vector",data.files)
+                self.assertIn("eigencoefficients",data.files)
+                self.assertIn("eigenvalues",data.files)
+                self.assertIn("status",data.files)
+                self.assertEqual(data["eigencoefficients"].shape[0],len(files))
+                self.assertEqual(data["eigencoefficients"].shape[1],len(data["eigenvalues"]))
+                np.testing.assert_allclose(data["eigenvalues"],evfeast)
+                self.assertEqual(
+                        data["status"].item()["subspaceConstruction"],
+                        status["subspaceConstruction"])
 
 if __name__ == '__main__':
     unittest.main()

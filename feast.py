@@ -10,6 +10,7 @@ from abstractVector import AbstractVector
 import warnings
 import time
 import math
+import os
 from magic import ipsh
 from printUtils import FeastPrintUtils
 
@@ -103,6 +104,19 @@ def _backTransformDoubleSum(Qquad,uSH):
     coeffs = np.repeat(uSH,len(Qquad[0]),axis=0)
     return basisTransformation(flat,coeffs)
 
+def _saveFeastVectors(vectors,coefficients,eigenvalues,status,saveDir,outerIter):
+    """Save FEAST basis vectors and the matching diagonalization data."""
+    if not os.path.exists(saveDir):
+        os.makedirs(saveDir)
+    for ivector, vector in enumerate(vectors):
+        additionalInformation = {
+                "status":status,
+                "eigencoefficients":coefficients,
+                "eigenvalues":eigenvalues,
+                }
+        filename = f"{saveDir}/vector_{outerIter:03d}_{ivector:03d}"
+        vector.save(filename, additionalInformation=additionalInformation)
+
 def _matchedEigenvalueResidual(ev,reference,eMin,eMax):
     """Compare sorted interval eigenvalues from two FEAST iterations."""
     evInside = select_within_range(ev,eMin,eMax)[0]
@@ -189,7 +203,8 @@ def feastDiagonalization(A, Y: list[AbstractVector],
                          n_quad, quad, eMin, eMax, eConv, maxit, contourEllipseFactor=1.0,
                          writeOut=True, eShift=0.0, 
                          convertUnit="au", outFileName=None, summaryFileName=None,
-                         subspaceConstruction="fitted_sums"):
+                         subspaceConstruction="fitted_sums",
+                         saveAllVectors=False, saveDir="feastVectors"):
     """FEAST diagonalization of A.
 
     See Polizzi, PRB, 79, 115112 (2009) 10.1103/PhysRevB.79.115112
@@ -230,6 +245,8 @@ def feastDiagonalization(A, Y: list[AbstractVector],
         3 or "expanded_space": diagonalize in the full space spanned by
             number-of-guesses times number-of-grid vectors. This can return
             eigenvalues outside the target interval.
+    saveAllVectors (optional) => save FEAST basis vectors to `saveDir`
+    saveDir (optional) => directory for saved FEAST vectors
 
     Output parameters
     ----------------
@@ -296,6 +313,12 @@ def feastDiagonalization(A, Y: list[AbstractVector],
         
         uSH = uS@uv
         del uv
+        if saveAllVectors:
+            if subspaceConstruction == "double_sums":
+                saveCoefficients = np.repeat(uSH,len(Qquad[0]),axis=0)
+            else:
+                saveCoefficients = uSH
+            _saveFeastVectors(basisVectors,saveCoefficients,ev,status,saveDir,it)
         if subspaceConstruction == "double_sums":
             Y = _backTransformDoubleSum(Qquad,uSH)
         else:
