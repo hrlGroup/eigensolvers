@@ -5,7 +5,7 @@ from pathlib import Path
 from magic import ipsh
 from numpyVector import NumpyVector
 from util_funcs import quadraturePointsWeights
-from feast  import calculateQuadrature, updateQ
+from feast  import calculateQuadrature
 
 # This tests our FEAST code (partial comparison) 
 # with outputs of FEAST Fortran code (by Eric Polizzi)
@@ -123,7 +123,7 @@ class Test_feast_fortran(unittest.TestCase):
         theta = np.empty((self.n_quad))
         zne = np.empty((self.n_quad),dtype=complex)
         n,m = len(self.guess),len(self.guess[0].array)
-        Q = [np.nan for it in range(n)]
+        Qquad = [[] for it in range(n)]
         for k in range(self.n_quad):
             theta[k] = -(pi*0.5)*(gk[k]-1)
         
@@ -134,9 +134,10 @@ class Test_feast_fortran(unittest.TestCase):
             zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta[k])+r*self.efactor*1.0j*math.sin(theta[k])
             for im0 in range(len(self.guess)):
                 Qquad_k = calculateQuadrature(self.mat,self.guess[im0],zne[k],r,theta[k],wk[k],self.efactor)
-                Q = updateQ(Q,im0,Qquad_k,k)
-            for im0 in range(len(self.guess)):
-                np.testing.assert_allclose(Q[im0].array,fQ[im0],rtol=1e-5,atol=0)
+                Qquad[im0].append(Qquad_k)
+                Q = typeClass.linearCombination(
+                        Qquad[im0],np.ones(len(Qquad[im0])))
+                np.testing.assert_allclose(Q.array,fQ[im0],rtol=1e-5,atol=0)
     
         
 if __name__ == '__main__':

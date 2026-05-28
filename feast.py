@@ -182,24 +182,6 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor)
 
     return Qquad_k
 
-def updateQ(Q,im0,Qquad_k,k):
-    """Add the k-th quadrature solution to the existing Q.
-    In: Q => Q vectors
-        im0 => im0-th vector to be updated
-        Qquad_k => k-th quadrature for the im0-th 
-                vector to be updated
-        k => quadrature point
-
-    Out: Q => updated Q vectors"""
-
-    typeClass = Qquad_k.__class__
-    if k == 0:
-        Q[im0] = Qquad_k
-    else:
-        #print("Fit: Update quadrature")
-        Q[im0] = typeClass.linearCombination([Q[im0],Qquad_k],[1.0,1.0])
-    return Q
-       
 # ***************************************************
 # Part 1: main FEAST function for contour integral
 # ------------------------------
