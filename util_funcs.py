@@ -289,6 +289,53 @@ def eigenvalueResidual(ev:np.ndarray,reference:np.ndarray,
     residual = absDiff/sumEigenvalue
     return residual
 
+def overlapMatchFromOverlapMatrix(overlap,currentOverlap=None,referenceOverlap=None):
+    """Match states using an overlap matrix.
+
+    Returns:
+        overlapVariation: sum of 1 - matched overlap
+        matches: indices of matched reference vectors
+        rootOverlaps: matched normalized overlaps
+    """
+    if overlap is None:
+        return np.inf, None, None
+    if overlap.shape[0] == 0 or overlap.shape[1] == 0:
+        return np.inf, None, None
+
+    if currentOverlap is None:
+        currentNorms = np.ones(overlap.shape[0])
+    else:
+        currentNorms = np.sqrt(np.abs(np.diag(currentOverlap)))
+    if referenceOverlap is None:
+        referenceNorms = np.ones(overlap.shape[1])
+    else:
+        referenceNorms = np.sqrt(np.abs(np.diag(referenceOverlap)))
+    overlap = np.abs(overlap)
+    norm = currentNorms[:,None] * referenceNorms[None,:]
+    overlap = np.divide(
+            overlap,norm,out=np.zeros_like(overlap,dtype=float),
+            where=norm > 1e-12)
+    matches = np.argmax(overlap,axis=1)
+    rootOverlaps = overlap[np.arange(overlap.shape[0]),matches]
+    overlapVariation = float(np.sum(1.0 - rootOverlaps))
+    return overlapVariation, matches, rootOverlaps
+
+def overlapMatchAnalysis(vectors,referenceVectors):
+    """Compare two vector lists by largest normalized overlap."""
+    if vectors is None or referenceVectors is None:
+        return np.inf, None, None
+    if len(vectors) == 0 or len(referenceVectors) == 0:
+        return np.inf, None, None
+
+    nCurrent = len(vectors)
+    allVectors = list(vectors) + list(referenceVectors)
+    Smat = allVectors[0].__class__.overlapMatrix(allVectors)
+    currentOverlap = Smat[:nCurrent,:nCurrent]
+    referenceOverlap = Smat[nCurrent:,nCurrent:]
+    overlap = Smat[:nCurrent,nCurrent:]
+    return overlapMatchFromOverlapMatrix(
+            overlap,currentOverlap,referenceOverlap)
+
 # -----------------------------------------------------
 def calculateTarget(eigenvalues, indx, tol=1e-14):
     """Calculate a target for the given eigenvalues.

@@ -92,6 +92,10 @@ class LanczosPrintUtils:
                 "Maximum Lanczos iterations")+"\n"
         lines += formatStyle.format("econv",f"{self.eConv:.03g}",\
                 "Eigenvalue convergence")+"\n"
+        if self.status["overlapConv"] is not None:
+            lines += formatStyle.format("overlapConv",
+                    f"{self.status['overlapConv']:.03g}",
+                    "Overlap convergence")+"\n"
         lines += formatStyle.format("checkFitTol",self.checkFitTol,"Checkfit tolerance")+"\n"
         pickname = str(self.pick).split(" ")[1]
         lines += "{:10} {:>20}".format("pick",pickname)+"\n"
@@ -151,7 +155,10 @@ class LanczosPrintUtils:
         lines = "{:>4} {:>6} {:>6} {:>12}".format("it","i","nCum","target")
         for iBlock in range(nBlock):
             lines += "{:>18}".format("EvalueBlock"+str(iBlock+1))
-        lines += "{:>16} {:>16}".format("residual","time(seconds)"+"\n")
+        lines += "{:>16}".format("residual")
+        if self.status["overlapConv"] is not None:
+            lines += "{:>20}".format("overlapVariation")
+        lines += "{:>16}".format("time(seconds)"+"\n")
         
         sumfile.write(lines)
     
@@ -231,6 +238,22 @@ class LanczosPrintUtils:
             fitmaxD = args[0]["fitmaxD"]
             line += f"{fitmaxD}"+"\n\n"
             outfile.write(line)
+        elif label == "overlapConvergence":
+            status = args[0]
+            if status["overlapConv"] is None:
+                return
+            lines = "\nOVERLAP CONVERGENCE ANALYSIS\n"
+            lines += f"overlapVariation {status['overlapVariation']}\n"
+            if status["rootOverlaps"] is not None:
+                lines += "root  matchedPreviousRoot  overlap  contribution\n"
+                for iRoot, overlap in enumerate(status["rootOverlaps"]):
+                    matchedRoot = status["overlapMatches"][iRoot]
+                    contribution = 1.0 - overlap
+                    lines += (
+                            f"{iRoot:4d} {matchedRoot:19d} "
+                            f"{overlap: .12e} {contribution: .12e}\n"
+                            )
+            outfile.write(lines)
     # ........................FINAL RESULTS ..............................
         elif label == "results":
             # same as 'eigenvalues', with ev_nearest and final message
@@ -262,8 +285,15 @@ class LanczosPrintUtils:
             for iBlock in range(nBlock):
                 lines += "{:>18}".format(f"{excitation[iBlock]:.10f}")
             
-            lines += "{:>16} {:>16}".format(f"{residual:5.4e}",f"{runTime:.2f}"\
-                    +"\n")
+            lines += "{:>16}".format(f"{residual:5.4e}")
+            if status["overlapConv"] is not None:
+                overlapVariation = status["overlapVariation"]
+                if overlapVariation is None:
+                    overlapText = "nan"
+                else:
+                    overlapText = f"{overlapVariation:5.4e}"
+                lines += "{:>20}".format(overlapText)
+            lines += "{:>16}".format(f"{runTime:.2f}" + "\n")
             sumfile.write(lines)
         
         outfile.flush()

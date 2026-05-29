@@ -14,6 +14,7 @@ from util_funcs import headerBot
 from util_funcs import get_pick_function_close_to_sigma
 from util_funcs import get_pick_function_maxOvlp
 from util_funcs import eigenvalueResidual
+from util_funcs import overlapMatchFromOverlapMatrix
 import copy
 import os
 
@@ -61,7 +62,11 @@ def _getStatus(status, guessVector, nBlock):
             "futileRestarts":0,
             "startTime":time.time(), "runTime":0.0,
             "KSmaxD":[],"fitmaxD":None,
-            "phase":1}
+            "phase":1,
+            "overlapVariation":None,
+            "overlapMatches":None,
+            "rootOverlaps":None,
+            "overlapConv":None}
 
     if status is not None:
         givenkeys = status.keys()
@@ -102,13 +107,46 @@ def _convergence(value, ref):
     check_ev = abs(value - ref)/max(abs(value), 1e-14)
     return check_ev
 
+def _overlapConvergenceFromCoefficients(currentBasis,currentCoefficients,
+        referenceBasis,referenceCoefficients):
+    """Compare Ritz vectors by transforming the Krylov overlap matrices."""
+    if currentBasis is None or referenceBasis is None:
+        return np.inf, None, None
+    if currentCoefficients is None or referenceCoefficients is None:
+        return np.inf, None, None
+    if len(currentBasis) == 0 or len(referenceBasis) == 0:
+        return np.inf, None, None
 
-def checkConvergence(ev,eConv,status,printObj=None):
+    currentBasis = currentBasis[:currentCoefficients.shape[0]]
+    referenceBasis = referenceBasis[:referenceCoefficients.shape[0]]
+
+    nCurrentBasis = len(currentBasis)
+    allBasis = list(currentBasis) + list(referenceBasis)
+    Smat = allBasis[0].__class__.overlapMatrix(allBasis)
+    currentBasisOverlap = Smat[:nCurrentBasis,:nCurrentBasis]
+    referenceBasisOverlap = Smat[nCurrentBasis:,nCurrentBasis:]
+    crossOverlap = Smat[:nCurrentBasis,nCurrentBasis:]
+
+    overlap = currentCoefficients.T.conj() @ crossOverlap @ referenceCoefficients
+    currentOverlap = currentCoefficients.T.conj() @ currentBasisOverlap @ currentCoefficients
+    referenceOverlap = referenceCoefficients.T.conj() @ referenceBasisOverlap @ referenceCoefficients
+    return overlapMatchFromOverlapMatrix(
+            overlap,currentOverlap,referenceOverlap)
+
+def checkConvergence(ev,eConv,status,printObj=None,overlapConv=None,
+        currentBasis=None,currentCoefficients=None,
+        referenceBasis=None,referenceCoefficients=None):
     """Check eigenvalue convergence.
     
     In: ev -> eigenvalues, sorted based on `pick`
+        eConv -> eigenvalue convergence tolerance
         status -> parameter dictionary
         printObj (optional): print object
+        overlapConv (optional): overlap convergence tolerance
+        currentBasis/currentCoefficients (optional): current Ritz vectors as
+            Krylov basis coefficients
+        referenceBasis/referenceCoefficients (optional): previous Ritz vectors
+            as Krylov basis coefficients
     
     Out: status (dict: updated isConverged, ref)
          """
@@ -122,13 +160,28 @@ def checkConvergence(ev,eConv,status,printObj=None):
         reference = status["ref"][-1] 
         residual = eigenvalueResidual(nBlockEigenvalues,reference)
         status["residual"] = residual
+        status["overlapVariation"] = None
+        status["overlapMatches"] = None
+        status["rootOverlaps"] = None
+        overlapConverged = True
+        if overlapConv is not None:
+            overlapVariation, matches, rootOverlaps = (
+                    _overlapConvergenceFromCoefficients(
+                        currentBasis,currentCoefficients,
+                        referenceBasis,referenceCoefficients))
+            status["overlapVariation"] = overlapVariation
+            status["overlapMatches"] = matches
+            status["rootOverlaps"] = rootOverlaps
+            overlapConverged = overlapVariation <= overlapConv
         if residual <= eConv:
-            isConverged = True
+            isConverged = overlapConverged
 
     status["isConverged"] = isConverged
     status["runTime"] = time.time() - status["startTime"]
     if printObj is not None:
         printObj.writeFile("summary",nBlockEigenvalues, status)
+        if overlapConv is not None:
+            printObj.writeFile("overlapConvergence", status)
     status["ref"].append(nBlockEigenvalues)
     if len(status["ref"]) > 2:status["ref"].pop(0)
     return status
@@ -220,7 +273,8 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                                   pick=None, status=None,
                                   writeOut=True, eShift=0.0, convertUnit="au",
                                   outFileName=None, summaryFileName=None,
-                                  saveAllVectors=True, saveDir="lanczosVectors"):
+                                  saveAllVectors=True, saveDir="lanczosVectors",
+                                  overlapConv=None):
     """Calculate eigenvalues and eigenvectors using the inexact Lanczos method.
 
 
@@ -252,6 +306,9 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             summaryFileName (optional): summary file name
             saveAllVectors (optional): save newly generated Lanczos vectors to `saveDir`
             saveDir (optional): directory for saving Krylov vectors
+             overlapConv (optional): if set, convergence also requires the
+                    sum of 1-|overlap| between current and previous selected
+                    Ritz vectors to be below this threshold.
 
 
     Output parameters
@@ -283,6 +340,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
     Hmat = typeClass.matrixRepresentation(H,Ylist)
 
     status = _getStatus(status,Ylist[0],nBlock)
+    status["overlapConv"] = overlapConv
     if pick is None:
         pick = get_pick_function_close_to_sigma(sigma)
     assert callable(pick)
@@ -291,6 +349,8 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             writeOut,eShift,convertUnit,pick,status, outFileName, 
             summaryFileName)
     printObj.fileHeader()
+    overlapReferenceBasis = None
+    overlapReferenceCoefficients = None
 
     for outerIter in range(maxit):
         status["outerIter"] = outerIter
@@ -365,7 +425,15 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             #
             # Checks
             #
-            status = checkConvergence(ev,eConv,status,printObj)
+            status = checkConvergence(ev,eConv,status,printObj,
+                    overlapConv=overlapConv,
+                    currentBasis=Ylist,
+                    currentCoefficients=uSH[:,:nBlock],
+                    referenceBasis=overlapReferenceBasis,
+                    referenceCoefficients=overlapReferenceCoefficients)
+            if overlapConv is not None:
+                overlapReferenceBasis = Ylist.copy()
+                overlapReferenceCoefficients = uSH[:,:nBlock].copy()
             continueIteration = analyzeStatus(status,maxit,L)
             
             # Save the Lanczos vectors generated in this step.

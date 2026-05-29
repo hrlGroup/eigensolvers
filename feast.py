@@ -5,6 +5,7 @@ from scipy import special
 from util_funcs import select_within_range, quadraturePointsWeights, eigenvalueResidual
 from util_funcs import basisTransformation
 from util_funcs import lowdinOrthoMatrix, diagonalizeHamiltonian 
+from util_funcs import overlapMatchAnalysis
 from numpyVector import NumpyVector
 from abstractVector import AbstractVector
 import warnings
@@ -150,22 +151,11 @@ def _matchedRootConvergence(ev,vectors,referenceEv,referenceVectors):
     if referenceVectors is None or len(referenceVectors) == 0:
         return _matchedEigenvalueResidual(ev,referenceEv,-np.inf,np.inf), None
 
-    nCurrent = len(vectors)
-    allVectors = list(vectors) + list(referenceVectors)
-    Smat = allVectors[0].__class__.overlapMatrix(allVectors)
-    currentNorms = np.sqrt(np.abs(np.diag(Smat[:nCurrent,:nCurrent])))
-    referenceNorms = np.sqrt(np.abs(np.diag(Smat[nCurrent:,nCurrent:])))
-    overlap = np.abs(Smat[:nCurrent,nCurrent:])
-    norm = currentNorms[:,None] * referenceNorms[None,:]
-    overlap = np.divide(
-            overlap,norm,out=np.zeros_like(overlap,dtype=float),
-            where=norm > 1e-12)
-    referenceIndices = np.argmax(overlap,axis=1)
-    overlaps = overlap[np.arange(nCurrent),referenceIndices]
+    overlapVariation, referenceIndices, rootOverlaps = overlapMatchAnalysis(
+            vectors,referenceVectors)
 
     matchedReferenceEv = np.asarray(referenceEv)[referenceIndices]
     residual = eigenvalueResidual(np.asarray(ev),matchedReferenceEv)
-    overlapVariation = float(np.sum(1.0 - np.asarray(overlaps)))
     return residual, overlapVariation
 
 def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor):
