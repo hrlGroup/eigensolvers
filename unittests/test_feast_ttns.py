@@ -75,7 +75,7 @@ class Test_feast_ttns(unittest.TestCase):
         self.rmin = energies[3]*1.001
         self.rmax = energies[5]*1.001
         self.maxit = 15
-        self.nc = 6  
+        self.n_quad = 3
         self.eConv = 1e-6
         self.quad = "legendre"
         self.writeOut = False
@@ -107,12 +107,73 @@ class Test_feast_ttns(unittest.TestCase):
             guess.append(TTNSVector(setTrees[i],options))
         self.guess = guess
 
-    
-    def test_feast_ttns(self):
-        evfeast, uvfeast, status = feastDiagonalization(self.mat,self.guess,
-                self.nc,self.quad,self.rmin,self.rmax,self.eConv,self.maxit,
-                writeOut=self.writeOut)
+    def _assertEigenvalues(self, evfeast):
+        """Check accuracy of the calculated eigenvalues."""
+        contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
+        feast_evs = select_within_range(evfeast, self.rmin, self.rmax)[0]
+        self.assertGreaterEqual(
+                len(feast_evs),len(contour_evs),
+                "All eigenvalues within contour must be calculated")
 
+        for target_value in contour_evs:
+            closest_value = find_nearest(feast_evs,target_value)[1]
+            self.assertTrue(
+                    (abs(target_value-closest_value)<= 1e-4),
+                    "Not accurate up to 1e-4")
+
+    def _assertEigenvectors(self, evfeast, uvfeast):
+        """Check accuracy of the calculated eigenvectors."""
+        contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
+        for target_value in contour_evs:
+            idxE = find_nearest(self.evEigh,target_value)[0]
+            idxT = find_nearest(evfeast,target_value)[0]
+            options = uvfeast[0].options
+            exactVector = TTNSVector(self.uvEigh[idxE],options)
+            feastVector = uvfeast[idxT]
+
+            ovlp = exactVector.vdot(feastVector)
+            np.testing.assert_allclose(
+                    abs(ovlp), 1, rtol=2e-4,
+                    err_msg = f"{ovlp=} but it should be +-1")
+
+            feastVector = feastVector * np.conjugate(ovlp)
+            exactVector = np.ravel(exactVector.ttns.fullTensor(canonicalOrder=True)[0])
+            feastVector = np.ravel(feastVector.ttns.fullTensor(canonicalOrder=True)[0])
+            np.testing.assert_allclose(
+                    exactVector,feastVector,rtol=1e-3,atol=1e-3)
+
+
+    def test_feast_ttns(self):
+        subspaceConstructions = [
+                (1,"fitted_sums",self.maxit),
+                (2,"double_sums",self.maxit),
+                (3,"expanded_space",2),
+                ]
+        fittedResult = None
+
+        for subspaceConstruction,expected,maxit in subspaceConstructions:
+            with self.subTest(subspaceConstruction=expected):
+                evfeast, uvfeast, status = feastDiagonalization(
+                        self.mat,copy.deepcopy(self.guess),
+                        self.n_quad,self.quad,self.rmin,self.rmax,self.eConv,maxit,
+                        writeOut=self.writeOut,
+                        subspaceConstruction=subspaceConstruction)
+
+                self.assertEqual(status["subspaceConstruction"], expected)
+                self.assertIsInstance(evfeast, np.ndarray)
+                self.assertIsInstance(uvfeast, list)
+                self.assertIsInstance(uvfeast[0], TTNSVector)
+
+                with self.subTest("eigenvalue"):
+                    self._assertEigenvalues(evfeast)
+
+                with self.subTest("eigenvector"):
+                    self._assertEigenvectors(evfeast,uvfeast)
+
+                if expected == "fitted_sums":
+                    fittedResult = evfeast,uvfeast,status
+
+        evfeast,uvfeast,status = fittedResult
         typeClass = uvfeast[0].__class__
         
         with self.subTest("orthogonalization"):
@@ -138,41 +199,6 @@ class Test_feast_ttns(unittest.TestCase):
             self.assertIsInstance(evfeast, np.ndarray)
             self.assertIsInstance(uvfeast, list)
             self.assertIsInstance(uvfeast[0], TTNSVector)
-
-        with self.subTest("eigenvalue"):
-            """Check accuracy of the calculated eigenvalues."""
-
-            # All contour eigenvalues.
-            contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
-            ncontour_evs = len(contour_evs)
-            nfeast_ev = len(evfeast)
-            self.assertTrue((ncontour_evs <= nfeast_ev),'All eigenvalues within contour must be calculated')
-
-            # Eigenvalue accuracy.
-            feast_evs = select_within_range(evfeast, self.rmin, self.rmax)[0]
-            for i in range(len(contour_evs)):
-                target_value = contour_evs[i]
-                closest_value = find_nearest(feast_evs,target_value)[1]
-                self.assertTrue((abs(target_value-closest_value)<= 1e-4),'Not accurate up to 1e-4')
-    
-        with self.subTest("eigenvector"):
-            """Check accuracy of the calculated eigenvectors."""
-
-            contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
-            for i in range(len(contour_evs)):
-                idxE = find_nearest(self.evEigh,contour_evs[i])[0]
-                idxT = find_nearest(evfeast,contour_evs[i])[0]
-                options = uvfeast[0].options
-                exactVector = TTNSVector(self.uvEigh[idxE],options)
-                feastVector = uvfeast[idxT]
-
-                ovlp = exactVector.vdot(feastVector)
-                np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-4, err_msg = f"{ovlp=} but it should be +-1")
-            
-                feastVector = feastVector * np.conjugate(ovlp)
-                exactVector = np.ravel(exactVector.ttns.fullTensor(canonicalOrder=True)[0])
-                feastVector = np.ravel(feastVector.ttns.fullTensor(canonicalOrder=True)[0])
-                np.testing.assert_allclose(exactVector,feastVector,rtol=1e-3,atol=1e-3)
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,7 +5,7 @@ from pathlib import Path
 from magic import ipsh
 from numpyVector import NumpyVector
 from util_funcs import quadraturePointsWeights
-from feast  import calculateQuadrature, updateQ
+from feast  import calculateQuadrature
 
 # This tests our FEAST code (partial comparison) 
 # with outputs of FEAST Fortran code (by Eric Polizzi)
@@ -31,7 +31,7 @@ class Test_feast_fortran(unittest.TestCase):
         n = A.shape[0]
         self.rmin = 3.0
         self.rmax = 5.0
-        self.nc = 8            # number of contour points
+        self.n_quad = 8        # number of quadrature points
         self.quad = "legendre" # Choice of quadrature points
         m0 = 3                 # subspace dimension
         self.eConv = 1e-12      # residual convergence tolerance
@@ -57,17 +57,28 @@ class Test_feast_fortran(unittest.TestCase):
     def test_legendre_points(self):
         """ Checks distribution points with the help of manual order """
         fgk,fwk = read_fortranData()[2:4]
-        gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)
+        gk,wk = quadraturePointsWeights(self.n_quad,self.quad,positiveHalf=False)
         np.testing.assert_allclose(fgk,gk[self.order],rtol=1e-5,atol=0)
         np.testing.assert_allclose(fwk,wk[self.order],rtol=1e-5,atol=0)
+
+    def test_trapezoidal_points(self):
+        """Check the FEAST midpoint trapezoidal rule on [-1, 1]."""
+        gk,wk = quadraturePointsWeights(5,"trapezoidal",positiveHalf=False)
+        np.testing.assert_allclose(gk,[-0.8,-0.4,0.0,0.4,0.8],rtol=0,atol=1e-15)
+        np.testing.assert_allclose(wk,[0.4,0.4,0.4,0.4,0.4],rtol=0,atol=0)
+        self.assertAlmostEqual(np.sum(wk),2.0)
+
+        theta = -(np.pi*0.5)*(gk-1)
+        feast_theta = np.array([np.pi-(np.pi/5)/2.0-(np.pi/5)*e for e in range(5)])
+        np.testing.assert_allclose(theta,feast_theta,rtol=0,atol=1e-15)
 
     def test_theta(self):
         """ Checks angle for quadrature, theta """
         ftheta= read_fortranData()[4]
-        gk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)[0]
+        gk = quadraturePointsWeights(self.n_quad,self.quad,positiveHalf=False)[0]
         pi = np.pi
-        theta = np.empty((self.nc))
-        for k in range(self.nc):
+        theta = np.empty((self.n_quad))
+        for k in range(self.n_quad):
             theta[k] = -(pi*0.5)*(gk[k]-1)
         np.testing.assert_allclose(ftheta,theta[self.order],rtol=1e-5,atol=0)
    
@@ -75,10 +86,10 @@ class Test_feast_fortran(unittest.TestCase):
         """ Checks quadrature points, zne """
         fzne= read_fortranData()[5]
         r = abs(self.rmax-self.rmin)*0.5
-        gk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)[0]
+        gk = quadraturePointsWeights(self.n_quad,self.quad,positiveHalf=False)[0]
         pi = np.pi
-        zne = np.empty((self.nc),dtype=complex)
-        for k in range(self.nc):
+        zne = np.empty((self.n_quad),dtype=complex)
+        for k in range(self.n_quad):
             theta = -(pi*0.5)*(gk[k]-1)
             zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta)+r*self.efactor*1.0j*math.sin(theta)
         np.testing.assert_allclose(fzne,zne[self.order],rtol=1e-5,atol=0)
@@ -87,17 +98,17 @@ class Test_feast_fortran(unittest.TestCase):
         """Check linear solutions, Qe."""
         typeClass = self.guess[0].__class__
         r = abs(self.rmax-self.rmin)*0.5
-        gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)
+        gk,wk = quadraturePointsWeights(self.n_quad,self.quad,positiveHalf=False)
         pi = np.pi
-        zne = np.empty((self.nc),dtype=complex)
+        zne = np.empty((self.n_quad),dtype=complex)
         n,m = len(self.guess),len(self.guess[0].array)
         Qe = np.empty((n,m),dtype=complex)
-        for k in range(self.nc):
+        for k in range(self.n_quad):
             theta = -(pi*0.5)*(gk[k]-1)
             zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta)+r*self.efactor*1.0j*math.sin(theta)
         
         zne = zne[self.order]    
-        for k in range(self.nc):
+        for k in range(self.n_quad):
             fQe = read_fortranData(k)[6]
             for im0 in range(len(self.guess)):
                 Qe[im0] = typeClass.solve(self.mat,self.guess[im0],zne[k]).array
@@ -107,25 +118,26 @@ class Test_feast_fortran(unittest.TestCase):
         """ Checks integrated solutions, Q """
         typeClass = self.guess[0].__class__
         r = abs(self.rmax-self.rmin)*0.5
-        gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)
+        gk,wk = quadraturePointsWeights(self.n_quad,self.quad,positiveHalf=False)
         pi = np.pi
-        theta = np.empty((self.nc))
-        zne = np.empty((self.nc),dtype=complex)
+        theta = np.empty((self.n_quad))
+        zne = np.empty((self.n_quad),dtype=complex)
         n,m = len(self.guess),len(self.guess[0].array)
-        Q = [np.nan for it in range(n)]
-        for k in range(self.nc):
+        Qquad = [[] for it in range(n)]
+        for k in range(self.n_quad):
             theta[k] = -(pi*0.5)*(gk[k]-1)
         
         theta = theta[self.order]
         wk = wk[self.order]
-        for k in range(self.nc):
+        for k in range(self.n_quad):
             fQ = read_fortranData(k)[7]
             zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta[k])+r*self.efactor*1.0j*math.sin(theta[k])
             for im0 in range(len(self.guess)):
                 Qquad_k = calculateQuadrature(self.mat,self.guess[im0],zne[k],r,theta[k],wk[k],self.efactor)
-                Q = updateQ(Q,im0,Qquad_k,k)
-            for im0 in range(len(self.guess)):
-                np.testing.assert_allclose(Q[im0].array,fQ[im0],rtol=1e-5,atol=0)
+                Qquad[im0].append(Qquad_k)
+                Q = typeClass.linearCombination(
+                        Qquad[im0],np.ones(len(Qquad[im0])))
+                np.testing.assert_allclose(Q.array,fQ[im0],rtol=1e-5,atol=0)
     
         
 if __name__ == '__main__':

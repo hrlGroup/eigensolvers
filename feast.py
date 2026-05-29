@@ -5,13 +5,33 @@ from scipy import special
 from util_funcs import select_within_range, quadraturePointsWeights, eigenvalueResidual
 from util_funcs import basisTransformation
 from util_funcs import lowdinOrthoMatrix, diagonalizeHamiltonian 
+from util_funcs import overlapMatchAnalysis
 from numpyVector import NumpyVector
 from abstractVector import AbstractVector
 import warnings
 import time
 import math
+import os
 from magic import ipsh
 from printUtils import FeastPrintUtils
+
+SUBSPACE_CONSTRUCTION_OPTIONS = {
+        1:"fitted_sums",
+        "fitted_sums":"fitted_sums",
+        2:"double_sums",
+        "double_sums":"double_sums",
+        3:"expanded_space",
+        "expanded_space":"expanded_space",
+        }
+
+def _canonicalizeSubspaceConstruction(subspaceConstruction):
+    try:
+        return SUBSPACE_CONSTRUCTION_OPTIONS[subspaceConstruction]
+    except KeyError as exc:
+        raise ValueError(
+                "subspaceConstruction must be 1, 2, 3, "
+                "'fitted_sums', 'double_sums', or 'expanded_space'."
+                ) from exc
 
 def _getStatus(status,guess):
     """Build a dictionary for storing the computation status.
@@ -41,6 +61,102 @@ def _getStatus(status,guess):
                 statusUp[item] = status[item]
     
     return statusUp
+
+def _flattenQuadratureVectors(Qquad):
+    """Return a flat list and index map for quadrature-resolved vectors."""
+    flat = []
+    index = {}
+    for iGuess, vectors in enumerate(Qquad):
+        for iQuad, vector in enumerate(vectors):
+            index[(iGuess,iQuad)] = len(flat)
+            flat.append(vector)
+    return flat,index
+
+def _sumQuadratureVectors(Qquad):
+    """Sum quadrature-resolved vectors for each initial guess."""
+    Q = []
+    for vectors in Qquad:
+        typeClass = vectors[0].__class__
+        coeffs = np.ones(len(vectors))
+        Q.append(typeClass.linearCombination(vectors,coeffs))
+    return Q
+
+def _buildDoubleSumMatrices(A,Qquad,typeClass):
+    """Build FEAST matrices by explicit sums over quadrature vectors."""
+    flat,index = _flattenQuadratureVectors(Qquad)
+    Hflat = typeClass.matrixRepresentation(A,flat)
+    Sflat = typeClass.overlapMatrix(flat)
+    nGuess = len(Qquad)
+    Hmat = np.zeros((nGuess,nGuess),dtype=Hflat.dtype)
+    Smat = np.zeros((nGuess,nGuess),dtype=Sflat.dtype)
+    for iGuess in range(nGuess):
+        for jGuess in range(nGuess):
+            for iQuad in range(len(Qquad[iGuess])):
+                iFlat = index[(iGuess,iQuad)]
+                for jQuad in range(len(Qquad[jGuess])):
+                    jFlat = index[(jGuess,jQuad)]
+                    Hmat[iGuess,jGuess] += Hflat[iFlat,jFlat]
+                    Smat[iGuess,jGuess] += Sflat[iFlat,jFlat]
+    return Hmat,Smat,flat
+
+def _backTransformDoubleSum(Qquad,uSH):
+    """Back-transform from explicit double-sum FEAST matrices."""
+    flat,_ = _flattenQuadratureVectors(Qquad)
+    coeffs = np.repeat(uSH,len(Qquad[0]),axis=0)
+    return basisTransformation(flat,coeffs)
+
+def _saveFeastVectors(vectors,coefficients,eigenvalues,status,saveDir,outerIter):
+    """Save FEAST basis vectors and the matching diagonalization data."""
+    if not os.path.exists(saveDir):
+        os.makedirs(saveDir)
+    for ivector, vector in enumerate(vectors):
+        additionalInformation = {
+                "status":status,
+                "eigencoefficients":coefficients,
+                "eigenvalues":eigenvalues,
+                }
+        filename = f"{saveDir}/vector_{outerIter:03d}_{ivector:03d}"
+        vector.save(filename, additionalInformation=additionalInformation)
+
+def _matchedEigenvalueResidual(ev,reference,eMin,eMax):
+    """Compare sorted interval eigenvalues from two FEAST iterations."""
+    evInside = select_within_range(ev,eMin,eMax)[0]
+    refInside = select_within_range(reference,eMin,eMax)[0]
+    if len(evInside) == 0 or len(refInside) == 0:
+        evInside = np.sort(ev)
+        refInside = np.sort(reference)
+
+    evInside = np.sort(evInside)
+    refInside = np.sort(refInside)
+    if len(evInside) > len(refInside):
+        indices = np.argmin(np.abs(evInside[:,None] - refInside[None,:]),axis=0)
+        evInside = evInside[indices]
+    elif len(refInside) > len(evInside):
+        indices = np.argmin(np.abs(refInside[:,None] - evInside[None,:]),axis=0)
+        refInside = refInside[indices]
+
+    return eigenvalueResidual(evInside,refInside)
+
+def _screenedRootOrder(ev,eMin,eMax):
+    """Return root indices with interval roots first."""
+    rootIndices = select_within_range(ev,eMin,eMax)[1]
+    rootSet = set(rootIndices)
+    outsideIndices = [idx for idx in range(len(ev)) if idx not in rootSet]
+    return rootIndices + outsideIndices, rootIndices
+
+def _matchedRootConvergence(ev,vectors,referenceEv,referenceVectors):
+    """Compare roots by largest vector overlap with the previous iteration."""
+    if len(ev) == 0 or len(referenceEv) == 0:
+        return np.inf, np.inf
+    if referenceVectors is None or len(referenceVectors) == 0:
+        return _matchedEigenvalueResidual(ev,referenceEv,-np.inf,np.inf), None
+
+    overlapVariation, referenceIndices, rootOverlaps = overlapMatchAnalysis(
+            vectors,referenceVectors)
+
+    matchedReferenceEv = np.asarray(referenceEv)[referenceIndices]
+    residual = eigenvalueResidual(np.asarray(ev),matchedReferenceEv)
+    return residual, overlapVariation
 
 def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor):
     """Calculate k-th quadrature Qquad_k assuming `Amat` is Hermitian.
@@ -102,32 +218,17 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor)
 
     return Qquad_k
 
-def updateQ(Q,im0,Qquad_k,k):
-    """Add the k-th quadrature solution to the existing Q.
-    In: Q => Q vectors
-        im0 => im0-th vector to be updated
-        Qquad_k => k-th quadrature for the im0-th 
-                vector to be updated
-        k => quadrature point
-
-    Out: Q => updated Q vectors"""
-
-    typeClass = Qquad_k.__class__
-    if k == 0:
-        Q[im0] = Qquad_k
-    else:
-        #print("Fit: Update quadrature")
-        Q[im0] = typeClass.linearCombination([Q[im0],Qquad_k],[1.0,1.0])
-    return Q
-       
 # ***************************************************
 # Part 1: main FEAST function for contour integral
 # ------------------------------
 def feastDiagonalization(A, Y: list[AbstractVector],
-                         nc, quad, eMin, eMax, eConv, maxit, contourEllipseFactor=1.0,
+                         n_quad, quad, eMin, eMax, eConv, maxit, contourEllipseFactor=1.0,
                          writeOut=True, eShift=0.0, 
-                         convertUnit="au", outFileName=None, summaryFileName=None):
-    """FEAST diagonalization of A.
+                         convertUnit="au", outFileName=None, summaryFileName=None,
+                         subspaceConstruction="fitted_sums",
+                         saveAllVectors=False, saveDir="feastVectors",
+                         rootScreening=False, overlapConv=None):
+    """FEAST diagonalization of a Hermitian operator A.
 
     See Polizzi, PRB, 79, 115112 (2009) 10.1103/PhysRevB.79.115112
     and Baiardi, Kelemen, Reiher, JCTC, 18, 1415 (2021) 10.1021/acs.jctc.1c00984
@@ -138,9 +239,14 @@ def feastDiagonalization(A, Y: list[AbstractVector],
          Note: Must be Hermitian. 
          Otherwise, `calculateQuadrature` needs to be adapted.
     Y => Initial guess of vectors.
-    nc => number of quadrature points
+    n_quad => actual number of quadrature points used by FEAST on the
+              Hermitian half-contour. Internally, FEAST builds a symmetric
+              quadrature rule with `2*n_quad` points and keeps the positive
+              half.
     quad => quadrature points distribution
             Available options - "legendre", "hermite", "trapezoidal"
+            Note: Hermite will lead to points outside the [eMin, eMax] 
+                  interval.
     eMin => eigenvalue lower limit
     eMax => eigenvalue upper limit
     eConv => eigenvalue residual convergence tolerance
@@ -157,6 +263,22 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     convertUnit (optional) => unit for printing
     outFileName (optional) => output file name
     summaryFileName (optional) => summary file name
+    subspaceConstruction (optional) => FEAST subspace construction.
+        Default: "fitted_sums".
+        1 or "fitted_sums": sum quadrature vectors with linearCombination/fitting.
+        2 or "double_sums": build H and S by explicit double sums over
+            quadrature vectors, then fit only the next guesses.
+        3 or "expanded_space": diagonalize in the full space spanned by
+            number-of-guesses times number-of-grid vectors. This can return
+            eigenvalues outside the target interval.
+    saveAllVectors (optional) => save FEAST basis vectors to `saveDir`
+    saveDir (optional) => directory for saved FEAST vectors
+    rootScreening (optional) => if True, use roots inside [eMin, eMax] for
+        convergence. All roots are returned, but interval roots are placed
+        before roots outside the interval. Roots are matched to the previous
+        iteration by largest vector overlap.
+    overlapConv (optional) => if given, the screened-root convergence check
+        also requires the sum of 1-|overlap| to be below this value.
 
     Output parameters
     ----------------
@@ -169,23 +291,32 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     N_SUBSPACE = len(Y)
     assert eMax > eMin
     eRadius = (eMax - eMin) * 0.5
+    subspaceConstruction = _canonicalizeSubspaceConstruction(subspaceConstruction)
+    if not isinstance(rootScreening,bool):
+        raise ValueError("rootScreening must be True or False.")
     
 
-    # Numerical quadrature points.
-    gk, wk = quadraturePointsWeights(nc, quad, positiveHalf=True)
+    # Numerical quadrature points. `n_quad` is the number of points used on
+    # the Hermitian half-contour, so generate a symmetric rule with twice as
+    # many nodes before keeping the positive half.
+    gk, wk = quadraturePointsWeights(2*n_quad, quad, positiveHalf=True)
     pi = np.pi
     
     status = _getStatus(None,Y)
-    printObj = FeastPrintUtils(Y, nc, quad, eMin, eMax, eConv, maxit, 
-            writeOut, eShift, convertUnit, status, 
+    status["subspaceConstruction"] = subspaceConstruction
+    status["rootScreening"] = rootScreening
+    status["overlapConv"] = overlapConv
+    printObj = FeastPrintUtils(Y, n_quad, quad, eMin, eMax, eConv, maxit, 
+            writeOut, eShift, convertUnit, status, subspaceConstruction,
             outFileName, summaryFileName)
 
     printObj.fileHeader()
+    final_ev = None
+    final_Y = None
     
     for it in range(maxit):
         status["outerIter"] = it
-        # initialize Q
-        Q = [np.nan for it in range(N_SUBSPACE)]
+        Qquad = [[] for _ in range(N_SUBSPACE)]
         for k in range(len(gk)):
             status["quadrature"] = k
 
@@ -197,11 +328,21 @@ def feastDiagonalization(A, Y: list[AbstractVector],
             
             for im0 in range(N_SUBSPACE):
                 Qquad_k = calculateQuadrature(A,Y[im0],z,eRadius,theta,wk[k],contourEllipseFactor)
-                Q = updateQ(Q,im0,Qquad_k,k)
+                Qquad[im0].append(Qquad_k)
         
-        # Solve the eigenvalue problem in the Lowdin orthogonal basis.
-        Smat = typeClass.overlapMatrix(Q)
-        Hmat = typeClass.matrixRepresentation(A, Q)
+        if subspaceConstruction == "fitted_sums":
+            Q = _sumQuadratureVectors(Qquad)
+            basisVectors = Q
+            Smat = typeClass.overlapMatrix(Q)
+            Hmat = typeClass.matrixRepresentation(A,Q)
+        elif subspaceConstruction == "double_sums":
+            Hmat,Smat,basisVectors = _buildDoubleSumMatrices(A,Qquad,typeClass)
+        elif subspaceConstruction == "expanded_space":
+            basisVectors,_ = _flattenQuadratureVectors(Qquad)
+            Smat = typeClass.overlapMatrix(basisVectors)
+            Hmat = typeClass.matrixRepresentation(A,basisVectors)
+        else:
+            raise RuntimeError(f"Unexpected {subspaceConstruction=}")
         
         if printObj is not None:
             printObj.writeFile("iteration",status)
@@ -212,36 +353,82 @@ def feastDiagonalization(A, Y: list[AbstractVector],
         
         uSH = uS@uv
         del uv
-        Y = basisTransformation(Q,uSH)
-        del Q
+
+        if saveAllVectors:
+            if subspaceConstruction == "double_sums":
+                saveCoefficients = np.repeat(uSH,len(Qquad[0]),axis=0)
+            else:
+                saveCoefficients = uSH
+            _saveFeastVectors(basisVectors,saveCoefficients,ev,status,saveDir,it)
+        if subspaceConstruction == "double_sums":
+            Y = _backTransformDoubleSum(Qquad,uSH)
+        else:
+            Y = basisTransformation(basisVectors,uSH)
+        del Qquad
+        del basisVectors
+
+        evForConvergence = ev
+        YForConvergence = Y
+        if rootScreening:
+            orderedIndices, rootIndices = _screenedRootOrder(ev,eMin,eMax)
+            final_ev = ev[orderedIndices]
+            final_Y = [Y[index] for index in orderedIndices]
+            status["screenedRootIndices"] = rootIndices
+            status["screenedEigenvalues"] = ev[rootIndices]
+            status["nScreenedRoots"] = len(rootIndices)
+            status["rootScreeningFallback"] = False
+            if len(rootIndices) > 0:
+                evForConvergence = ev[rootIndices]
+                YForConvergence = [Y[index] for index in rootIndices]
+            else:
+                status["rootScreeningFallback"] = True
+                warnings.warn(
+                        "rootScreening=True found no roots in the "
+                        "target interval. Keeping all roots for this iteration."
+                        )
+        else:
+            final_ev = evForConvergence
+            final_Y = YForConvergence
 
         if it != 0:
-            if len(ref_ev) > len(ev):
-                # TODO add unit test for this case # not priority
-                # Get elements in ref_ev that are closest to ev
-                indices = np.argmin(np.abs(ref_ev[:, None] - ev[None, :]) , axis=0)
-                ref_ev = ref_ev[indices]
-            elif len(ref_ev) < len(ev):
-                raise RuntimeError(f"{ref_ev=} but {ev=}. Enlarged space?")
-            residual = eigenvalueResidual(ev, ref_ev, [eMin, eMax])
+            if rootScreening or overlapConv is not None:
+                residual, overlapVariation = _matchedRootConvergence(
+                        evForConvergence,YForConvergence,ref_ev,ref_Y)
+            else:
+                residual = _matchedEigenvalueResidual(ev,ref_ev,eMin,eMax)
+                overlapVariation = None
             status["runTime"] = time.time() - status["startTime"]
             status["residual"] = residual
-            printObj.writeFile("summary",ev,residual,status)
+            status["overlapVariation"] = overlapVariation
+            printObj.writeFile("summary",final_ev,residual,status)
             
-            if residual < eConv:
+            hasConverged = residual < eConv
+            if overlapConv is not None:
+                hasConverged = (
+                        hasConverged
+                        and overlapVariation is not None
+                        and overlapVariation < overlapConv
+                        )
+            if hasConverged:
                 break
 
-        if N_SUBSPACE != len(Y): 
+        if len(Y) < N_SUBSPACE:
             warnings.warn(f"Alert! Got {N_SUBSPACE-len(Y)} \
                 dependent vectors")
+        elif len(Y) > N_SUBSPACE and subspaceConstruction == "expanded_space":
+            warnings.warn(
+                    f"expanded_space increased the FEAST guess count from "
+                    f"{N_SUBSPACE} to {len(Y)}."
+                    )
 
         N_SUBSPACE = len(Y)
-        ref_ev = ev
+        ref_ev = evForConvergence
+        ref_Y = YForConvergence
 
-    printObj.writeFile("results",ev)
+    printObj.writeFile("results",final_ev)
     printObj.fileFooter()
 
-    return ev,Y,status
+    return final_ev,final_Y,status
 
 
 if __name__ == "__main__":
@@ -258,7 +445,7 @@ if __name__ == "__main__":
     # Specify FEAST parameters
     ev_min = 160.0
     ev_max = 166.0
-    nc    = 8          # number of contour points
+    n_quad = 8         # number of quadrature points
     quad  = "legendre" # Choice of quadrature points # available options, legendre, Hermite (, trapezoidal !)
     m0    = 6         # subspace dimension
     eps   = 1e-6      # residual convergence tolerance
@@ -278,5 +465,5 @@ if __name__ == "__main__":
 
     contour_ev = select_within_range(ev, ev_min, ev_max)[0]
     print("--- actual eigenvalues",contour_ev,"---\n")
-    efeast,ufeast =  feastDiagonalization(linOp,Y,nc,quad,ev_min,ev_max,eps,maxit)[0:2]
+    efeast,ufeast =  feastDiagonalization(linOp,Y,n_quad,quad,ev_min,ev_max,eps,maxit)[0:2]
     print("\n---feast eigenvalues",efeast,"---")

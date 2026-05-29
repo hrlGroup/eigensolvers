@@ -11,20 +11,21 @@ LINDEP_DEFAULT_VALUE = 1e-14 # Global variable
 #LINDEP_DEFAULT_VALUE = 1e-9 # Global variable
 
 # -----------------------------------------------------
-def trapezoidal(nc):
+def trapezoidal(n_quad):
     """
-    input: nc, user-defined number of quadrature points
+    input: n_quad, user-defined number of quadrature points
     output: quadrature points and associated weights
     """
-    points=np.zeros(nc)
-    weights=np.zeros(nc)
-    a=-1.0
-    b=1.0
-    dx=(b-a)/(nc)
-    for i in range(nc):
-        points[i]=a+dx*(i-1)
-        weights[i]=(b-a)/(nc+1)
-    return (points,weights)
+    if n_quad < 2:
+        raise ValueError("Trapezoidal quadrature requires at least two points.")
+
+    # FEAST uses the midpoint trapezoidal rule for contour angles:
+    # theta_k = pi - pi/(2*n_quad) - pi*k/n_quad.
+    # With theta = pi/2 * (1 - g), this corresponds to midpoint
+    # quadrature on [-1, 1].
+    points=np.linspace(-1.0 + 1.0/n_quad,1.0 - 1.0/n_quad,n_quad)
+    weights=np.full(n_quad,2.0/n_quad)
+    return points,weights
 
 # -----------------------------------------------------
 # This function is copied from cross_filterdiag.py
@@ -144,8 +145,8 @@ def nearest_degenerate(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx, array[idx]
 # -----------------------------------------------------
-def quadraturePointsWeights(nc:int, quad:str, positiveHalf=True):
-    """Return `nc` quadrature points and weights based on quadrature `quad`.
+def quadraturePointsWeights(n_quad:int, quad:str, positiveHalf=True):
+    """Return `n_quad` quadrature points and weights based on quadrature `quad`.
     Currently supported: legendre, hermite, trapezoidal
      positiveHalf: True => return only points on the positive half circle
             This is fine for Hermitian problems.
@@ -153,11 +154,11 @@ def quadraturePointsWeights(nc:int, quad:str, positiveHalf=True):
     """
 
     if quad == "legendre":
-        gk,wk = special.roots_legendre(nc)
+        gk,wk = special.roots_legendre(n_quad)
     elif quad == "hermite":
-        gk,wk = special.roots_hermite(nc)
+        gk,wk = special.roots_hermite(n_quad)
     elif quad == "trapezoidal":
-        gk,wk = trapezoidal(nc)
+        gk,wk = trapezoidal(n_quad)
 
     if positiveHalf:
         idx = gk > 0.0
@@ -222,7 +223,7 @@ def basisTransformation(bases: "List[AbstractVector]",coeffs: np.ndarray):
     combBases = []
     if len(ndim)==1:
         if len(coeffs) == 1 and coeffs[0] == 1.0:
-            combBases.append(bases)
+            combBases.append(bases[0])
         else:
             combBases.append(typeClass.linearCombination(bases,coeffs))
     else:
@@ -287,6 +288,53 @@ def eigenvalueResidual(ev:np.ndarray,reference:np.ndarray,
         sumEigenvalue += abs(ev[i])
     residual = absDiff/sumEigenvalue
     return residual
+
+def overlapMatchFromOverlapMatrix(overlap,currentOverlap=None,referenceOverlap=None):
+    """Match states using an overlap matrix.
+
+    Returns:
+        overlapVariation: sum of 1 - matched overlap
+        matches: indices of matched reference vectors
+        rootOverlaps: matched normalized overlaps
+    """
+    if overlap is None:
+        return np.inf, None, None
+    if overlap.shape[0] == 0 or overlap.shape[1] == 0:
+        return np.inf, None, None
+
+    if currentOverlap is None:
+        currentNorms = np.ones(overlap.shape[0])
+    else:
+        currentNorms = np.sqrt(np.abs(np.diag(currentOverlap)))
+    if referenceOverlap is None:
+        referenceNorms = np.ones(overlap.shape[1])
+    else:
+        referenceNorms = np.sqrt(np.abs(np.diag(referenceOverlap)))
+    overlap = np.abs(overlap)
+    norm = currentNorms[:,None] * referenceNorms[None,:]
+    overlap = np.divide(
+            overlap,norm,out=np.zeros_like(overlap,dtype=float),
+            where=norm > 1e-12)
+    matches = np.argmax(overlap,axis=1)
+    rootOverlaps = overlap[np.arange(overlap.shape[0]),matches]
+    overlapVariation = float(np.sum(1.0 - rootOverlaps))
+    return overlapVariation, matches, rootOverlaps
+
+def overlapMatchAnalysis(vectors,referenceVectors):
+    """Compare two vector lists by largest normalized overlap."""
+    if vectors is None or referenceVectors is None:
+        return np.inf, None, None
+    if len(vectors) == 0 or len(referenceVectors) == 0:
+        return np.inf, None, None
+
+    nCurrent = len(vectors)
+    allVectors = list(vectors) + list(referenceVectors)
+    Smat = allVectors[0].__class__.overlapMatrix(allVectors)
+    currentOverlap = Smat[:nCurrent,:nCurrent]
+    referenceOverlap = Smat[nCurrent:,nCurrent:]
+    overlap = Smat[:nCurrent,nCurrent:]
+    return overlapMatchFromOverlapMatrix(
+            overlap,currentOverlap,referenceOverlap)
 
 # -----------------------------------------------------
 def calculateTarget(eigenvalues, indx, tol=1e-14):

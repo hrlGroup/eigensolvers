@@ -85,7 +85,7 @@ else:
 Emin = 720  # Lower limit of excitation energy for target interval
 Emax = 730   # Upper limit of excitation energy for target interval
 maxit = 3 
-nc = 6 
+n_quad = 6
 eps = 1e-6 
 quad = "legendre"
 zpve = 9837.4069
@@ -116,7 +116,7 @@ for i in range(N_SUBSPACE):
 ev_min = util.unit2au((Emin+zpve),"cm-1")  # lower limit of eigenvalue in a.u.
 ev_max = util.unit2au((Emax+zpve),"cm-1")  # upper limit of eigenvalue in a.u.
 
-ev, tnsList = feastDiagonalization(Hop,guess,nc,quad,ev_min,ev_max,eps,maxit,
+ev, tnsList = feastDiagonalization(Hop,guess,n_quad,quad,ev_min,ev_max,eps,maxit,
         eShift=zpve,convertUnit="cm-1")[0:2]
 print("Eigenvalues",util.au2unit(ev,"cm-1")-zpve)
 # -----------------   EOF  -----------------------
