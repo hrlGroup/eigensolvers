@@ -136,6 +136,38 @@ def _matchedEigenvalueResidual(ev,reference,eMin,eMax):
 
     return eigenvalueResidual(evInside,refInside)
 
+def _screenedRootOrder(ev,eMin,eMax):
+    """Return root indices with interval roots first."""
+    rootIndices = select_within_range(ev,eMin,eMax)[1]
+    rootSet = set(rootIndices)
+    outsideIndices = [idx for idx in range(len(ev)) if idx not in rootSet]
+    return rootIndices + outsideIndices, rootIndices
+
+def _matchedRootConvergence(ev,vectors,referenceEv,referenceVectors):
+    """Compare roots by largest vector overlap with the previous iteration."""
+    if len(ev) == 0 or len(referenceEv) == 0:
+        return np.inf, np.inf
+    if referenceVectors is None or len(referenceVectors) == 0:
+        return _matchedEigenvalueResidual(ev,referenceEv,-np.inf,np.inf), None
+
+    nCurrent = len(vectors)
+    allVectors = list(vectors) + list(referenceVectors)
+    Smat = allVectors[0].__class__.overlapMatrix(allVectors)
+    currentNorms = np.sqrt(np.abs(np.diag(Smat[:nCurrent,:nCurrent])))
+    referenceNorms = np.sqrt(np.abs(np.diag(Smat[nCurrent:,nCurrent:])))
+    overlap = np.abs(Smat[:nCurrent,nCurrent:])
+    norm = currentNorms[:,None] * referenceNorms[None,:]
+    overlap = np.divide(
+            overlap,norm,out=np.zeros_like(overlap,dtype=float),
+            where=norm > 1e-12)
+    referenceIndices = np.argmax(overlap,axis=1)
+    overlaps = overlap[np.arange(nCurrent),referenceIndices]
+
+    matchedReferenceEv = np.asarray(referenceEv)[referenceIndices]
+    residual = eigenvalueResidual(np.asarray(ev),matchedReferenceEv)
+    overlapVariation = float(np.sum(1.0 - np.asarray(overlaps)))
+    return residual, overlapVariation
+
 def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor):
     """Calculate k-th quadrature Qquad_k assuming `Amat` is Hermitian.
     
@@ -204,7 +236,8 @@ def feastDiagonalization(A, Y: list[AbstractVector],
                          writeOut=True, eShift=0.0, 
                          convertUnit="au", outFileName=None, summaryFileName=None,
                          subspaceConstruction="fitted_sums",
-                         saveAllVectors=False, saveDir="feastVectors"):
+                         saveAllVectors=False, saveDir="feastVectors",
+                         rootScreening=False, overlapConv=None):
     """FEAST diagonalization of a Hermitian operator A.
 
     See Polizzi, PRB, 79, 115112 (2009) 10.1103/PhysRevB.79.115112
@@ -250,6 +283,12 @@ def feastDiagonalization(A, Y: list[AbstractVector],
             eigenvalues outside the target interval.
     saveAllVectors (optional) => save FEAST basis vectors to `saveDir`
     saveDir (optional) => directory for saved FEAST vectors
+    rootScreening (optional) => if True, use roots inside [eMin, eMax] for
+        convergence. All roots are returned, but interval roots are placed
+        before roots outside the interval. Roots are matched to the previous
+        iteration by largest vector overlap.
+    overlapConv (optional) => if given, the screened-root convergence check
+        also requires the sum of 1-|overlap| to be below this value.
 
     Output parameters
     ----------------
@@ -263,6 +302,8 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     assert eMax > eMin
     eRadius = (eMax - eMin) * 0.5
     subspaceConstruction = _canonicalizeSubspaceConstruction(subspaceConstruction)
+    if not isinstance(rootScreening,bool):
+        raise ValueError("rootScreening must be True or False.")
     
 
     # Numerical quadrature points. `n_quad` is the number of points used on
@@ -273,11 +314,15 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     
     status = _getStatus(None,Y)
     status["subspaceConstruction"] = subspaceConstruction
+    status["rootScreening"] = rootScreening
+    status["overlapConv"] = overlapConv
     printObj = FeastPrintUtils(Y, n_quad, quad, eMin, eMax, eConv, maxit, 
             writeOut, eShift, convertUnit, status, subspaceConstruction,
             outFileName, summaryFileName)
 
     printObj.fileHeader()
+    final_ev = None
+    final_Y = None
     
     for it in range(maxit):
         status["outerIter"] = it
@@ -318,6 +363,7 @@ def feastDiagonalization(A, Y: list[AbstractVector],
         
         uSH = uS@uv
         del uv
+
         if saveAllVectors:
             if subspaceConstruction == "double_sums":
                 saveCoefficients = np.repeat(uSH,len(Qquad[0]),axis=0)
@@ -331,13 +377,49 @@ def feastDiagonalization(A, Y: list[AbstractVector],
         del Qquad
         del basisVectors
 
+        evForConvergence = ev
+        YForConvergence = Y
+        if rootScreening:
+            orderedIndices, rootIndices = _screenedRootOrder(ev,eMin,eMax)
+            final_ev = ev[orderedIndices]
+            final_Y = [Y[index] for index in orderedIndices]
+            status["screenedRootIndices"] = rootIndices
+            status["screenedEigenvalues"] = ev[rootIndices]
+            status["nScreenedRoots"] = len(rootIndices)
+            status["rootScreeningFallback"] = False
+            if len(rootIndices) > 0:
+                evForConvergence = ev[rootIndices]
+                YForConvergence = [Y[index] for index in rootIndices]
+            else:
+                status["rootScreeningFallback"] = True
+                warnings.warn(
+                        "rootScreening=True found no roots in the "
+                        "target interval. Keeping all roots for this iteration."
+                        )
+        else:
+            final_ev = evForConvergence
+            final_Y = YForConvergence
+
         if it != 0:
-            residual = _matchedEigenvalueResidual(ev,ref_ev,eMin,eMax)
+            if rootScreening or overlapConv is not None:
+                residual, overlapVariation = _matchedRootConvergence(
+                        evForConvergence,YForConvergence,ref_ev,ref_Y)
+            else:
+                residual = _matchedEigenvalueResidual(ev,ref_ev,eMin,eMax)
+                overlapVariation = None
             status["runTime"] = time.time() - status["startTime"]
             status["residual"] = residual
-            printObj.writeFile("summary",ev,residual,status)
+            status["overlapVariation"] = overlapVariation
+            printObj.writeFile("summary",final_ev,residual,status)
             
-            if residual < eConv:
+            hasConverged = residual < eConv
+            if overlapConv is not None:
+                hasConverged = (
+                        hasConverged
+                        and overlapVariation is not None
+                        and overlapVariation < overlapConv
+                        )
+            if hasConverged:
                 break
 
         if len(Y) < N_SUBSPACE:
@@ -350,12 +432,13 @@ def feastDiagonalization(A, Y: list[AbstractVector],
                     )
 
         N_SUBSPACE = len(Y)
-        ref_ev = ev
+        ref_ev = evForConvergence
+        ref_Y = YForConvergence
 
-    printObj.writeFile("results",ev)
+    printObj.writeFile("results",final_ev)
     printObj.fileFooter()
 
-    return ev,Y,status
+    return final_ev,final_Y,status
 
 
 if __name__ == "__main__":

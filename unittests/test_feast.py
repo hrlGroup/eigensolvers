@@ -199,6 +199,26 @@ class Test_feast(unittest.TestCase):
         self.assertEqual(len(ev_expanded),len(uv_expanded))
         self.assertGreater(len(ev_expanded),len(ev_fit))
 
+    def test_root_screening(self):
+        """Check interval screening and overlap-matched convergence."""
+        evfeast, uvfeast, status = feastDiagonalization(
+                self.mat,copy.deepcopy(self.guess),
+                self.n_quad,self.quad,self.rmin,self.rmax,
+                self.eConv,self.maxit,writeOut=False,
+                rootScreening=True,overlapConv=1e-8)
+
+        self.assertEqual(len(evfeast),len(uvfeast))
+        nScreened = status["nScreenedRoots"]
+        self.assertGreater(nScreened,0)
+        self.assertIsNotNone(status["overlapVariation"])
+        self.assertTrue(np.all(evfeast[:nScreened] >= self.rmin))
+        self.assertTrue(np.all(evfeast[:nScreened] <= self.rmax))
+        self.assertTrue(np.all(
+                (evfeast[nScreened:] < self.rmin)
+                | (evfeast[nScreened:] > self.rmax)))
+        self._assertEigenvalues(evfeast)
+        self._assertEigenvectors(evfeast,uvfeast)
+
     def test_save_all_vectors(self):
         """Check saving FEAST vectors with eigenvalues and coefficients."""
         with tempfile.TemporaryDirectory() as saveDir:
