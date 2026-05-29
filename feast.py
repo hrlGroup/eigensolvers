@@ -205,7 +205,7 @@ def feastDiagonalization(A, Y: list[AbstractVector],
                          convertUnit="au", outFileName=None, summaryFileName=None,
                          subspaceConstruction="fitted_sums",
                          saveAllVectors=False, saveDir="feastVectors"):
-    """FEAST diagonalization of A.
+    """FEAST diagonalization of a Hermitian operator A.
 
     See Polizzi, PRB, 79, 115112 (2009) 10.1103/PhysRevB.79.115112
     and Baiardi, Kelemen, Reiher, JCTC, 18, 1415 (2021) 10.1021/acs.jctc.1c00984
@@ -216,7 +216,10 @@ def feastDiagonalization(A, Y: list[AbstractVector],
          Note: Must be Hermitian. 
          Otherwise, `calculateQuadrature` needs to be adapted.
     Y => Initial guess of vectors.
-    n_quad => number of quadrature points
+    n_quad => actual number of quadrature points used by FEAST on the
+              Hermitian half-contour. Internally, FEAST builds a symmetric
+              quadrature rule with `2*n_quad` points and keeps the positive
+              half.
     quad => quadrature points distribution
             Available options - "legendre", "hermite", "trapezoidal"
             Note: Hermite will lead to points outside the [eMin, eMax] 
@@ -262,8 +265,10 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     subspaceConstruction = _canonicalizeSubspaceConstruction(subspaceConstruction)
     
 
-    # Numerical quadrature points.
-    gk, wk = quadraturePointsWeights(n_quad, quad, positiveHalf=True)
+    # Numerical quadrature points. `n_quad` is the number of points used on
+    # the Hermitian half-contour, so generate a symmetric rule with twice as
+    # many nodes before keeping the positive half.
+    gk, wk = quadraturePointsWeights(2*n_quad, quad, positiveHalf=True)
     pi = np.pi
     
     status = _getStatus(None,Y)

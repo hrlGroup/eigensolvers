@@ -25,7 +25,7 @@ class Test_feast(unittest.TestCase):
         # Specify FEAST parameters
         self.rmin = 160.0
         self.rmax = 166.0
-        self.n_quad = 8        # number of quadrature points
+        self.n_quad = 4        # number of quadrature points
         self.quad = "legendre" # Choice of quadrature points
         m0 = 6                 # subspace dimension
         self.eConv = 1e-10      # residual convergence tolerance
@@ -221,6 +221,16 @@ class Test_feast(unittest.TestCase):
                 self.assertEqual(
                         data["status"].item()["subspaceConstruction"],
                         status["subspaceConstruction"])
+
+        with tempfile.TemporaryDirectory() as saveDir:
+            feastDiagonalization(
+                    self.mat,copy.deepcopy(self.guess),
+                    self.n_quad,self.quad,self.rmin,self.rmax,
+                    self.eConv,1,writeOut=False,
+                    subspaceConstruction="expanded_space",
+                    saveAllVectors=True,saveDir=saveDir)
+            files = sorted(Path(saveDir).glob("vector_000_*.npz"))
+            self.assertEqual(len(files),len(self.guess)*self.n_quad)
 
 if __name__ == '__main__':
     unittest.main()

@@ -75,7 +75,7 @@ class Test_feast_ttns(unittest.TestCase):
         self.rmin = energies[3]*1.001
         self.rmax = energies[5]*1.001
         self.maxit = 15
-        self.n_quad = 6
+        self.n_quad = 3
         self.eConv = 1e-6
         self.quad = "legendre"
         self.writeOut = False
