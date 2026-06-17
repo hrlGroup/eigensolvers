@@ -1,0 +1,6 @@
+__pycache__/
+energies.dat
+iterations_lanczos.out
+profile_000.out
+summary_lanczos.out
+
