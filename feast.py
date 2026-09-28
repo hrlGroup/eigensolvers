@@ -409,6 +409,7 @@ def feastDiagonalization(A, Y: list[AbstractVector],
                         and overlapVariation is not None
                         and overlapVariation < overlapConv
                         )
+            status["isConverged"] = hasConverged
             if hasConverged:
                 break
 
